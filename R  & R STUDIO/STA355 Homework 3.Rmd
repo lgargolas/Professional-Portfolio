@@ -1,0 +1,622 @@
+---
+title: "STA355 Homework 3"
+author: "Luis Rojas"
+date: "21/03/2021"
+output: pdf_document
+---
+
+\pagebreak
+
+![](/Users/rojas-riccio/Desktop/4TH YEAR/WINTER 2021/STA355/ASSIGNMENTS/A3/Q1,C.png)
+
+
+```{r}
+bees <- scan("bees.txt")
+```
+
+__(The data are given in degrees;  you should convert them to radians.  The original data were rounded to the nearest 10degree ; the data in the file have been “jittered” to make them less discrete.)__ 
+
+__Using these data, compute the posterior density of__ $\kappa$ __in part (b) for__ $\lambda=1$ and $\lambda = 0.1$.  __How do these two posterior densities differ?  Do these posterior densities “rule out” the possibility that__ $\kappa=0$  __(i.e. a uniform distribution)?__
+
+From b we have:
+
+$$
+\pi(k|d_{1},...,d_{n})~ = ~ c(d_{1},...,d_{n}) \frac{exp(-\alpha \kappa) I_{o}(r \kappa )}{[I_{o}(\kappa)]^n}
+$$
+The von Misses Distribution whose density on $[0,2\pi]$ is:
+$$
+f(\theta; \kappa, \mu) = \frac{1}{2\pi I_0(\kappa)}~exp(\kappa~cos(\theta-\mu))
+$$
+We know the likelihood (considering only $\kappa$) has the form:
+
+$$
+L(D_i~; \kappa, \mu) = (\frac{1}{2\pi})^n (\frac{1}{\prod_{i=1}^{n} I_0(\kappa)}) \int_{0}^{2\pi} exp~[\sum_{i=1}^n~\kappa~cos(D_i-\mu)]~d\mu
+$$
+
+Writing in terms of the Bessel function of the first kind:
+
+$$
+L(D_i~; \kappa, \mu) = \frac{1}{(2\pi)^{n-1}} ~\frac{1}{\prod_{i=1}^{n} I_0(\kappa)}~ \frac{1}{2\pi}~\int_{0}^{2\pi} exp~[\kappa~r~cos(\theta-\mu)]~d\mu
+$$
+$$
+L(D_i~; \kappa, \mu) = \frac{1}{(2\pi)^{n-1}} ~\frac{1}{\prod_{i=1}^{n} I_0(\kappa)}~I_0(r\kappa)
+$$
+The log-likelihood is then:
+
+$$
+ln(L(D_i~; \kappa, \mu)) = log (\frac{1}{(2\pi)^{n-1}} ~\frac{1}{\prod_{i=1}^{n} I_0(\kappa)}~I_0(r\kappa))
+$$
+$$
+ln(L(\theta; \kappa, \mu)) = log(\frac{1}{(2\pi)^{n-1}})+~log(\frac{1}{\prod_{i=1}^{n} I_0(\kappa)})+~log(I_0(r\kappa))
+$$
+$$
+ln(L(\theta; \kappa, \mu)) = log(1)-({n-1})~log((2\pi))
++~log(1) - log({\sum_{i=1}^{n} I_0(\kappa)})
++~log(I_0(r\kappa))
+$$
+
+$$
+ln(L(\theta; \kappa)) = -({n-1})~log((2\pi))
+- log({\sum_{i=1}^{n} I_0(\kappa)})
++~log(I_0(r\kappa))
+$$
+
+We construct the function `loglikelihood` in R to obtain the values from the last equation using the given data "Bees":
+
+```{r}
+loglikelihood <- function(x,kappa) {
+  n <- length(x)
+  c <- -(n-1)*log(2*pi)
+  r <- sqrt((sum(cos(x)))^2 + (sum(sin(x)))^2)
+  b_k <- besselI(kappa, 0)
+  b_rk <- besselI(r*kappa, 0) 
+  loglike <- c - log(sum(b_k)) + log(b_rk)
+  loglike
+  }
+```
+
+Based on the document in quercus we con compute the pre-normalized $U(\theta)$ as:
+
+$$
+\mathfrak{U}(\theta) = exp[~ln(\pi(\theta)~+~ln(L(\theta)) ~ - ~ \underset{\theta}{max}  \left \{  (ln(\pi(\theta)~+~ln(L(\theta))  \right \} ~]
+$$
+We can define the prior here as:
+$$\pi(\kappa,\mu) = \frac{\lambda}{2 \pi} exp(-\lambda~\kappa)$$
+So, our pre-normalized $U(\theta)$ has the following form:
+
+$$
+\begin{aligned}
+\mathfrak{U}(\theta) &= exp~[~ln(\frac{\lambda}{2 \pi} exp(-\lambda~\kappa))~ -({n-1})~log((2\pi))
+~ - ~ log({\sum_{i=1}^{n} I_0(\kappa)})
++~log(I_0(r\kappa)) ~ 
+\\
+&~~~~~~~~~~~~~- ~ \underset{\theta}{max}  \left \{  ln(\frac{\lambda}{2 \pi} exp(-\lambda~\kappa))~ -({n-1})~log((2\pi))
+- log({\sum_{i=1}^{n} I_0(\kappa)})
++~log(I_0(r\kappa))  \right \}~]
+\end{aligned}
+$$
+
+Where the log prior has the following form:
+
+$$
+\begin{aligned}
+ln(\frac{\lambda}{2 \pi} exp(-\lambda~\kappa))
+\\
+ln(\frac{\lambda}{2 \pi}) ~+~ ln(exp(-\lambda~\kappa))
+\\
+ln(\lambda) ~ - ~ ln({2 \pi}) ~ - ~ \lambda~\kappa
+\\
+\end{aligned}
+$$
+Then, we construct our function prenorm that calculates the pre-normalized using the log-prior, log-likelihood, and given parameters and data:
+
+```{r}
+prenorm <- function(x, kappa, lambda) {
+  a <- loglikelihood(x,kappa)
+  ln_prior <- log(lambda) - log(2*pi) - lambda*kappa
+  a <- a + ln_prior  # add log-prior
+  a <- a - max(a) # subtract maximum
+  pre <- exp(a) # pre-normalized
+  pre
+  }
+```
+
+However, this is not enought we still need to compute the value of kappa hat, note that a simple estimate of $\kappa$ is:
+
+$$
+\hat{\kappa}~=~\frac{\frac{r}{n}(2-\frac{r^2}{n^2})}{1-\frac{r^2}{n^2}}
+$$
+Here r is defined as:
+
+$$
+r~=~\left \{    (\sum_{i=1}^{n} cos(d_{i}))^2 +  (\sum_{i=1}^{n} sin(d_{i}))^2  \right \}^{\frac{1}{2}}
+$$
+
+Given all this information and the number of observations in bees (i.e. n = 279 ) we estimate $\kappa$:
+
+$$
+\hat{\kappa}~=~\frac{ \frac{~\left \{    (\sum_{i=1}^{n} cos(d_{i}))^2 +  (\sum_{i=1}^{n} sin(d_{i}))^2  \right \}^{\frac{1}{2}}} {279}  (2-\frac{\left \{    (\sum_{i=1}^{n} cos(d_{i}))^2 +  (\sum_{i=1}^{n} sin(d_{i}))^2  \right \}}{279^2})}   {1-\frac{\left \{    (\sum_{i=1}^{n} cos(d_{i}))^2 +  (\sum_{i=1}^{n} sin(d_{i}))^2  \right \}}{279^2}}
+$$
+Contruct the function `kappa_hat` in order to compute the value that maximizes kappa:
+
+```{r}
+kappa_hat <- function(x){
+  n <- length(x)
+  a <- sqrt((sum(cos(x)))^2 + (sum(sin(x)))^2)/n
+  b <- sqrt((sum(cos(x)))^2 + (sum(sin(x)))^2)/(n^2)
+  kappa_hat <- ( a *(2-b) ) / (1-b)
+  kappa_hat
+}
+```
+
+Using the given dataset:
+
+```{r}
+kappa_hat(bees)
+```
+So the posterior density should be the largest for values of $\kappa$ close to 0.0536232. With this information we can set a range of values for $\kappa$ in order to construct the posterior density.
+
+In the following R chunk we summary the functions that we constructed:
+
+```{r}
+loglikelihood <- function(x,kappa) {
+  n <- length(x)
+  c <- (n-1) * log(2*pi)
+  r <- sqrt((sum(cos(x)))^2 + (sum(sin(x)))^2)
+  b_k <- besselI(kappa, 0)
+  b_rk <- besselI(r*kappa, 0) 
+  loglike <- - c - log(sum(b_k)) + log(b_rk)
+  loglike
+}
+
+prenorm <- function(x, kappa, lambda) {
+  a <- loglikelihood(x,kappa)
+  ln_prior <- (log(lambda) - log(2*pi) - (lambda*kappa))
+  a <- a + ln_prior  # add log-prior
+  a <- a - max(a) # subtract maximum
+  pre <- exp(-a) # pre-normalized, minus to avoid problems with the numerical integration
+  pre
+  }
+
+kappa_hat <- function(x){
+  n <- length(x)
+  a <- sqrt( (sum(cos(x)))^2 + (sum(sin(x)))^2 )/n
+  b <- sqrt((sum(cos(x)))^2 + (sum(sin(x)))^2)/(n^2)
+  kappa_hat <- ( a *(2-b) ) / (1-b)
+  kappa_hat
+}
+```
+
+```{r}
+kappa <- c(1:10000)/10000  # 10000 values of kappa
+prenorm_post <- prenorm(bees, kappa = kappa , lambda = 1) # compute pre-normalized posterior
+mult <- c(1/2,rep(1,9998),1/2) # multipliers for trapezoidal rule
+norm <- sum(mult*prenorm_post)/10000 # integral evaluated using trapezoidal rule
+post <- prenorm_post/norm # normalized posterior
+plot(kappa,post,type="l",ylab="posterior density")
+```
+
+```{r}
+post.cdf <- cumsum(mult*post)/10000 # compute the posterior cdf
+plot(kappa,post.cdf,type="l",ylab="cumulative posterior probability")
+abline(h=c(0.025,0.975),lty=2)
+lower <- max(kappa[post.cdf<0.025]) # lower limit for credible interval
+upper <- min(kappa[post.cdf>0.975]) # upper limit for credible interval
+c(lower,upper)
+```
+
+Now we do the same but for Lambda = 0.1:
+
+```{r}
+kappa <- c(1:10000)/10000  # 671 values of kappa
+prenorm_post <- prenorm(bees, kappa = kappa , lambda = 0.1) # compute pre-normalized posterior
+mult <- c(1/2,rep(1,9998),1/2) # multipliers for trapezoidal rule
+norm <- sum(mult*prenorm_post)/10000 # integral evaluated using trapezoidal rule
+post <- prenorm_post/norm # normalized posterior
+plot(kappa,post,type="l",ylab="posterior density")
+```
+
+```{r}
+post.cdf <- cumsum(mult*post)/10000 # compute the posterior cdf
+plot(kappa,post.cdf,type="l",ylab="cumulative posterior probability")
+abline(h=c(0.025,0.975),lty=2)
+lower <- max(kappa[post.cdf<0.025]) # lower limit for credible interval
+upper <- min(kappa[post.cdf>0.975]) # upper limit for credible interval
+c(lower,upper)
+```
+
+# Discussion of the Results
+
+We can see that the posterior density for $\lambda = 1$ approaches zero slower than the posterior density for $\lambda = 0.1$. As mentioned before the estimated value of $kappa$ that maximizes the posterior (marginal) density for $\kappa$ is close to 0.05 and we can see that the peak is constant at this point in the two posterior densities here calculated. 
+
+Moreover, the values of $kappa$ and the construction of the posterior distribution here presented rule out the possibility of $\kappa = 0$ and the values of $\kappa$ are strictly positive. 
+
+As a final remark, note that the range of values of $\kappa$ here considered are [0.0001, 1], which includes the expected peak at 0.05. The credible interval for the posterior cdf when $\lambda = 1$ is [0.025, 0.975] and for the case when $\lambda = 0.1$ is [0.0071, 0.6274] which again shows that our previous claim that the density for the case when $\lambda = 0.1$ approaches zero more rapidly than the case when $\lambda = 1$. 
+
+\pagebreak
+
+![](/Users/rojas-riccio/Desktop/4TH YEAR/WINTER 2021/STA355/ASSIGNMENTS/A3/Q1,d.png)
+![](/Users/rojas-riccio/Desktop/4TH YEAR/WINTER 2021/STA355/ASSIGNMENTS/A3/Q1,d2.png)
+
+Address the general model (i.e $\kappa \geq 0$) by putting a prior probability on the model $\kappa = 0$ (this implies a prior probability on $1-\theta$ on $\kappa > 0$). The prior density over {($\kappa,\mu$): $\kappa >0,~0\leq\mu<2\pi$} is $(1-\theta)\pi (\kappa,\mu)$, where $$\pi (\kappa,\mu) = \frac{\lambda}{2 \pi}~exp(-\lambda~\kappa)$$ this last prior is used with $\lambda = 1$ and becomes:
+$$
+\pi (\kappa,\mu) = \frac{1}{2 \pi}~exp(- 1 ~\kappa)
+$$
+So, the prior for this part is:
+
+$$
+(1-\theta)~\pi (\kappa,\mu) \equiv (1-\theta) ~ \frac{1}{2 \pi}~exp(- 1 ~\kappa)
+$$
+
+Note that the new log prior looks like:
+$$
+\begin{aligned}
+ln( (1-\theta) \frac{1}{2 \pi} exp(-1~\kappa))
+\\
+ln(1-\theta) + ln(\frac{1}{2 \pi}) ~+~ ln(exp(-1~\kappa))
+\\
+ln(1-\theta)~ - ~ ln({2 \pi}) ~ - ~ 1~\kappa
+\\
+\end{aligned}
+$$
+
+Using the code from part c:
+
+```{r}
+loglikelihood2 <- function(x,kappa) {
+  n <- length(x)
+  c <- (n-1) * log(2*pi)
+  r <- sqrt((sum(cos(x)))^2 + (sum(sin(x)))^2)
+  b_k <- besselI(kappa, 0)
+  b_rk <- besselI(r*kappa, 0) 
+  loglike <- - c - log(sum(b_k)) + log(b_rk)
+  loglike
+}
+
+prenorm2 <- function(x, kappa, lambda, theta) {
+  a <- loglikelihood2(x,kappa)
+  ln_prior <- log(1-theta) + (log(lambda) - log(2*pi) - (lambda*kappa))
+  a <- a + ln_prior  # add log-prior
+  a <- a - max(a) # subtract maximum
+  pre <- exp(-a) # pre-normalized, minus to avoid problems with the numerical integration
+  pre
+}
+```
+
+_For all thetas_
+
+```{r}
+#Kappa = 0
+theta <- seq(from = 0.1, to = 0.9, by = 0.1)
+prenorm_post <- prenorm2(bees, kappa = 0 , lambda = 1, theta = rep(theta,10000)) # compute pre-normalized posterior
+mult <- c(1/2,rep(1,9998),1/2) # multipliers for trapezoidal rule
+norm <- sum(mult*prenorm_post)/10000 # integral evaluated using trapezoidal rule
+post <- prenorm_post/norm # normalized posterior
+hist(post)
+plot(rep(theta,10000),post,type="l",ylab="posterior density", xlab="theta = 0.1,..., 0.9")
+```
+
+\pagebreak
+
+![](/Users/rojas-riccio/Desktop/4TH YEAR/WINTER 2021/STA355/ASSIGNMENTS/A3/Q2,C.png)
+
+![](/Users/rojas-riccio/Desktop/4TH YEAR/WINTER 2021/STA355/ASSIGNMENTS/A3/Q2,C2.png)
+
+
+Consider the following model 
+$$
+\begin{aligned}
+Y_I = \beta_0 + \beta_1x_i +\epsilon_i,~~~~~~~(i=1,...,n)
+\\
+\text{where:}~x_i =\frac{i}{n}~~and~~{\epsilon_i}~~\text{are independent}~~\mathcal{N}(0,1)~\text{random variables.}
+\end{aligned}
+$$
+For LMS estimation $$Var(\hat{\beta_1}) \approx \gamma/n^\alpha$$ for some $\gamma>0$ and $\alpha>0$. 
+In class we claimed that $\alpha = 1/3$, here estimate $\alpha$ via simulation.
+
+Step 1) compute $\hat{\beta_1}$ based on n=50 obs
+
+Step 2) Replicate this process M times (obtaining M values of $\hat{\beta_1}$).
+
+Step 3) Estimate $$Var(\hat{\beta_1})$$ from these M values in which case:
+
+$$
+\begin{aligned}
+\hat{Var}(\beta_1) &\approx \frac{\gamma}{n^\alpha}\\
+\text{or:}~~~~ln(\hat{Var}(\beta_1)) &\approx ln(\gamma) - \alpha~ln(n)
+\end{aligned}
+$$
+_Using a sample size of 50 (i.e: _$n =50$ _):_
+
+```{r, eval = FALSE}
+library(MASS)
+n <- 50
+nrep <- 1000
+x <- c(1:n)/n
+beta <- NULL
+for (i in 1:nrep) {
+  y <- rnorm(n, 0, 1)
+  r <- lmsreg(y~x)
+  beta <- c(beta,r$coef[2])
+}
+beta_50 <- beta
+save(beta_50, file = "beta_50.RData")
+```
+```{r}
+load("beta_50.RData")
+var50 <- var(beta_50)
+var50
+```
+
+_Using a sample size of 50 (i.e: _$n =100$ _):_
+
+```{r, eval = FALSE}
+library(MASS)
+n <- 100
+nrep <- 1000
+x <- c(1:n)/n
+beta <- NULL
+for (i in 1:nrep) {
+  y <- rnorm(n, 0, 1)
+  r <- lmsreg(y~x)
+  beta <- c(beta,r$coef[2])
+}
+beta_100 <- beta
+save(beta_100, file = "beta_100.RData")
+```
+```{r}
+load("beta_100.RData")
+var100 <- var(beta_100)
+var100
+```
+
+_Using a sample size of 50 (i.e: _$n =500$ _):_
+
+```{r, eval = FALSE}
+library(MASS)
+n <- 500
+nrep <- 1000
+x <- c(1:n)/n
+beta <- NULL
+for (i in 1:nrep) {
+  y <- rnorm(n, 0, 1)
+  r <- lmsreg(y~x)
+  beta <- c(beta,r$coef[2])
+}
+beta_500 <- beta
+save(beta_500, file = "beta_500.RData")
+```
+```{r}
+load("beta_500.RData")
+var500 <- var(beta_500)
+var500
+```
+
+_Using a sample size of 50 (i.e: _$n =1000$ _):_
+
+```{r, eval = FALSE}
+library(MASS)
+n <- 1000
+nrep <- 1000
+x <- c(1:n)/n
+beta <- NULL
+for (i in 1:nrep) {
+  options(mc.cores=parallel::detectCores())
+  y <- rnorm(n, 0, 1)
+  r <- lmsreg(y~x)
+  beta <- c(beta,r$coef[2])
+}
+beta_1000 <- beta
+save(beta_1000, file = "beta_1000.RData")
+```
+```{r}
+load("beta_1000.RData")
+var1000 <- var(beta_1000)
+var1000
+```
+
+_Using a sample size of 50 (i.e: _$n =5000$ _):_
+
+```{r, eval = FALSE}
+library(MASS)
+n <- 5000
+nrep <- 1000
+x <- c(1:n)/n
+beta <- NULL
+for (i in 1:nrep) {
+  options(mc.cores=parallel::detectCores())
+  y <- rnorm(n, 0, 1)
+  r <- lmsreg(y~x)
+  beta <- c(beta,r$coef[2])
+}
+beta_5000 <- beta
+save(beta_5000, file = "beta_5000.RData")
+```
+```{r}
+load("beta_5000.RData")
+var5000 <- var(beta_5000)
+var5000
+```
+Summarizing the variances obtained:
+
+```{r}
+cbind(var50, var100, var500, var1000, var5000)
+```
+
+Now we only need to estimate $\alpha$, we can do this using a simple OLS estimation:
+$$
+ln(\hat{Var}(\beta_1)) \approx ln(\gamma) - \alpha~ln(n)
+$$
+So we take the logarithm of our estimated variances: 
+
+```{r}
+y <- log(c(var50, var100, var500, var1000, var5000))
+log(rbind(c(var50, var100, var500, var1000, var5000)))
+```
+This is corresponding for each log-value of n, that is:
+
+```{r, echo = FALSE}
+n50 <- 50
+n100 <- 100
+n500 <- 500
+n1000 <- 1000
+n5000 <- 5000
+x <- log(c(n50, n100, n500, n1000, n5000))
+log(cbind(n50, n100, n500, n1000, n5000))
+```
+So, we run our regression as follows:
+
+```{r}
+library(MASS)
+ols_reg <- lm(y~x)
+ols_reg <- ols_reg$coefficients
+lms <- lmsreg(y~x)
+lms_reg <- lms$coefficients
+```
+
+Note that we run the OLS regression and LMS regressionjust to comparison purposes. The estimates for the coefficients that these regressions produce are very similar:
+```{r, echo=FALSE}
+cbind(ols_reg, lms_reg)
+```
+
+Finally, our estimate of $\alpha$ is __0.749__ for the OLS regression and **0.7612** for the LMS regression, this is based on samples sizes of n = 50, 100, 500, 1000, 5000 and the assumption that the errors are independent N(0,1) random variables. 
+
+\pagebreak
+
+![](/Users/rojas-riccio/Desktop/4TH YEAR/WINTER 2021/STA355/ASSIGNMENTS/A3/Q2,D.png)
+```{r, eval = FALSE}
+library(MASS)
+n <- 50
+nrep <- 1000
+x <- c(1:n)/n
+beta <- NULL
+for (i in 1:nrep) {
+  y <- rcauchy(n, 0, 1)
+  r <- lmsreg(y~x)
+  beta <- c(beta,r$coef[2])
+}
+beta_50_cauchy <- beta
+save(beta_50_cauchy, file = "beta_50_cauchy.RData")
+```
+```{r}
+load("beta_50_cauchy.RData")
+var50_cauchy <- var(beta_50_cauchy)
+var50_cauchy
+```
+
+```{r, eval = FALSE}
+library(MASS)
+n <- 100
+nrep <- 1000
+x <- c(1:n)/n
+beta <- NULL
+for (i in 1:nrep) {
+  y <- rcauchy(n, 0, 1)
+  r <- lmsreg(y~x)
+  beta <- c(beta,r$coef[2])
+}
+beta_100_cauchy <- beta
+save(beta_100_cauchy, file = "beta_100_cauchy.RData")
+```
+```{r}
+load("beta_100_cauchy.RData")
+var100_cauchy <- var(beta_100_cauchy)
+var100_cauchy
+```
+
+```{r, eval = FALSE}
+library(MASS)
+n <- 500
+nrep <- 1000
+x <- c(1:n)/n
+beta <- NULL
+for (i in 1:nrep) {
+  y <- rcauchy(n, 0, 1)
+  r <- lmsreg(y~x)
+  beta <- c(beta,r$coef[2])
+}
+beta_500_cauchy <- beta
+save(beta_500_cauchy, file = "beta_500_cauchy.RData")
+```
+```{r}
+load("beta_500_cauchy.RData")
+var500_cauchy <- var(beta_500_cauchy)
+var500_cauchy
+```
+
+```{r, eval = FALSE}
+library(MASS)
+n <- 1000
+nrep <- 1000
+x <- c(1:n)/n
+beta <- NULL
+for (i in 1:nrep) {
+  options(mc.cores=parallel::detectCores())
+  y <- rcauchy(n, 0, 1)
+  r <- lmsreg(y~x)
+  beta <- c(beta,r$coef[2])
+}
+beta_1000_cauchy <- beta
+save(beta_1000_cauchy, file = "beta_1000_cauchy.RData")
+```
+```{r}
+load("beta_1000_cauchy.RData")
+var1000_cauchy <- var(beta_1000_cauchy)
+var1000_cauchy
+```
+
+```{r, eval = FALSE}
+library(MASS)
+n <- 5000
+nrep <- 1000
+x <- c(1:n)/n
+beta <- NULL
+for (i in 1:nrep) {
+  options(mc.cores=parallel::detectCores())
+  y <- rcauchy(n, 0, 1)
+  r <- lmsreg(y~x)
+  beta <- c(beta,r$coef[2])
+}
+beta_5000_cauchy <- beta
+save(beta_5000_cauchy, file = "beta_5000_cauchy.RData")
+```
+```{r}
+load("beta_5000_cauchy.RData")
+var5000_cauchy <- var(beta_5000_cauchy)
+var5000_cauchy
+```
+
+We summarized the estimated variances for $\beta_1$ when using the cauchy errors:
+
+```{r}
+cbind(var50_cauchy, var100_cauchy, var500_cauchy, var1000_cauchy, var5000_cauchy)
+```
+
+In log-terms we have:
+
+```{r}
+y_c <- log(c(var50_cauchy, var100_cauchy, var500_cauchy, var1000_cauchy, var5000_cauchy))
+log(cbind(var50_cauchy, var100_cauchy, var500_cauchy, var1000_cauchy, var5000_cauchy))
+```
+
+And using the same approach as part c we have:
+
+```{r}
+library(MASS)
+ols_reg <- lm(y_c~x)
+ols_reg_c <- ols_reg$coefficients
+lms <- lmsreg(y_c~x)
+lms_reg_c <- lms$coefficients
+```
+
+So, the estimated coefficients for $\alpha$ and $\gamma$ are summarized in the following table:
+
+```{r, echo=FALSE}
+cbind(ols_reg_c, lms_reg_c)
+```
+When the errors are assumed to follow a Cauchy distribution the estimates for $\alpha$ differ from the case when the errors are assumed to come from a independently N(0,1) distribution. Then, in the case of the OLS regression the estimate for $\alpha$ is __0.7286__  and when using the LMS regression the estimate for $\alpha$ is  **0.653** which is clearly a slightly different estimate than when using the OLS regression. This is based on samples sizes of n = 50, 100, 500, 1000, 5000 and the assumption that the errors are independent N(0,1) random variables. 
+
+So, we conclude that the values for $\alpha$ when using Cauchy errors are slightly different than part c, we remark that for Cauchy errors the variance of the OLS estimator does not tend to zero as n gets large, this explains the difference in the estimates. 
+
+
+
