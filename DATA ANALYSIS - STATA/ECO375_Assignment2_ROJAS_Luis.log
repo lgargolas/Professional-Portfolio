@@ -1,0 +1,1730 @@
+---------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/rojas-riccio/Desktop/4TH YEAR/ECO 375/Assignment 2/PARA SUBIR /ECO375_Assignment2_ROJAS_Lui
+> s.log
+  log type:  text
+ opened on:  17 Dec 2020, 18:41:56
+
+. set more off    
+
+. clear                   
+
+. display "ECO375_Assignment2" _n "`surname' `firstname' `studentnumber'" _n c(current_date) c(current_time)
+ECO375_Assignment2
+ROJAS Luis 1003650676
+17 Dec 202018:41:56
+
+.                                                                                                              
+>                                    
+. /*      ====================================
+>         =========== Assignment 2 ===========
+>         ==================================== */
+.         
+.         
+. use "Ayres.dta", clear          // Call the file to be used 
+
+. datasignature                           // Checks data integrity                
+  1173:13(20629):957831776:26771264
+
+. describe                                        // describes the data to be analized
+
+Contains data from Ayres.dta
+  obs:         1,173                          
+ vars:            13                          21 Nov 2005 17:56
+---------------------------------------------------------------------------------------------------------------
+              storage   display    value
+variable name   type    format     label      variable label
+---------------------------------------------------------------------------------------------------------------
+year            byte    %9.0g                 
+vio             float   %9.0g                 Violent Crime Rate per 100,000 population (BJS)
+mur             float   %9.0g                 Murder Crime Rate per 100,000 population (BJS)
+rob             float   %9.0g                 Robbery Crime Rate per 100,000 population (BJS)
+incarc_rate     int     %8.0g                 72-99 ONLY - Lagged Rate per 100,000 resident pop of sentenced
+                                                prisoners in Stat
+pb1064          float   %9.0g                 
+pw1064          float   %9.0g                 
+pm1029          float   %9.0g                 
+pop             float   %9.0g                 
+avginc          float   %9.0g                 
+density         float   %9.0g                 
+stateid         byte    %9.0g                 
+shall           byte    %9.0g                 
+---------------------------------------------------------------------------------------------------------------
+Sorted by: 
+
+. 
+. gen ln_vio = ln(vio)
+
+. label variable ln_vio "Natural log of vio"
+
+. gen ln_rob = ln(rob)
+
+. label variable ln_vio "Natural log of Robbery rates"
+
+. gen ln_mur = ln(mur)
+
+. label variable ln_vio "Natural log of Murder rates"
+
+. gen ln_avginc = ln(avginc)
+
+. label variable ln_vio "Natural log of Average Income"
+
+. 
+. * Table 1 Summary Statistics
+. 
+. estpost sum vio rob mur shall incarc_rate density avginc pop pb1064 pw1064 pm1029 ln_vio ln_rob ln_mur ln_avg
+> inc
+
+             |  e(count)   e(sum_w)    e(mean)     e(Var)      e(sd)     e(min)     e(max)     e(sum) 
+-------------+----------------------------------------------------------------------------------------
+         vio |      1173       1173   503.0747   111741.2   334.2772         47     2921.8   590106.6 
+         rob |      1173       1173   161.8202   29073.65     170.51        6.4     1635.1   189815.1 
+         mur |      1173       1173   7.665132   56.59116    7.52271         .2       80.6     8991.2 
+       shall |      1173       1173   .2429668   .1840908   .4290581          0          1        285 
+ incarc_rate |      1173       1173   226.5797   32000.95   178.8881         19       1913     265778 
+     density |      1173       1173   .3520382   1.837304   1.355472   .0007071   11.10212   412.9408 
+      avginc |      1173       1173    13.7248   6.525687   2.554543   8.554884   23.64671   16099.19 
+         pop |      1173       1173   4.816341   27.58471   5.252115    .402753   33.14512   5649.568 
+      pb1064 |      1173       1173   5.336217   23.86994   4.885688   .2482066   26.97957   6259.382 
+      pw1064 |      1173       1173   62.94543   95.28741   9.761527   21.78043   76.52575   73834.99 
+      pm1029 |      1173       1173   16.08113   3.000321   1.732143   12.21368   22.35269   18863.16 
+      ln_vio |      1173       1173   6.027293   .4169211   .6456943   3.850147   7.979955   7070.015 
+      ln_rob |      1173       1173    4.68516   .9112911   .9546157   1.856298   7.399459   5495.692 
+      ln_mur |      1173       1173   1.782542   .4947969    .703418  -1.609438   4.389499   2090.922 
+   ln_avginc |      1173       1173    2.60258   .0328536   .1812557   2.146502   3.163224   3052.826 
+
+. 
+. #delimit ;
+delimiter now ;
+. esttab using "TABLE 1.2.rtf", replace
+> 
+>                 cells("mean(fmt(3)) sd(fmt(3)) max(fmt(1)) min(fmt(1))")
+>                 nomtitle nonumber
+>                 coeflabels(shall "{\i shall}" 
+>                                     incarc_rate "{\i incarc_rate}" 
+>                                         density "{\i density}" avginc "{\i avginc}"                          
+>       pop "{\i pop}"  
+>                                         pb1064 "{\i pb1064}" pw1064 "{\i pw1064}" 
+>                                         pm1029 "{\i pm1029}" 
+>                                         vio "{\i vio}" rob "{\i rob}" mur "{\i mur}"
+>                                         ln_vio "{\i Ln(vio)}" ln_rob "{\i Ln(rob)}" 
+>                                         ln_mur "{\i Ln(mur)}" 
+>                                         ln_avginc "{\i Ln(avginc)}") 
+>                 
+>                 title({\b Table 1}: {\i Summary Statistics});
+(output written to TABLE 1.2.rtf)
+
+. #delimit cr
+delimiter now cr
+. 
+. * Define panel data
+. 
+. tsset stateid year
+       panel variable:  stateid (strongly balanced)
+        time variable:  year, 77 to 99
+                delta:  1 unit
+
+. 
+. * Work for table 2 starts here
+. 
+. * Simple Regression 
+. 
+. reg ln_vio shall, robust
+
+Linear regression                               Number of obs     =      1,173
+                                                F(1, 1171)        =      86.86
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0866
+                                                Root MSE          =     .61735
+
+------------------------------------------------------------------------------
+             |               Robust
+      ln_vio |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       shall |  -.4429646   .0475283    -9.32   0.000    -.5362148   -.3497144
+       _cons |   6.134919   .0193039   317.81   0.000     6.097045    6.172793
+------------------------------------------------------------------------------
+
+. estimates store ols
+
+. estadd local fixeds "No", replace
+
+added macro:
+             e(fixeds) : "No"
+
+. estadd local fixedy "No", replace
+
+added macro:
+             e(fixedy) : "No"
+
+. estadd local clusters "No", replace
+
+added macro:
+           e(clusters) : "No"
+
+. 
+. * Simple Regression with controls
+. 
+. reg ln_vio shall incarc_rate density avginc pop pb1064 pw1064 pm1029, robust 
+
+Linear regression                               Number of obs     =      1,173
+                                                F(8, 1164)        =      95.67
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.5643
+                                                Root MSE          =     .42769
+
+------------------------------------------------------------------------------
+             |               Robust
+      ln_vio |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       shall |  -.3683869   .0347879   -10.59   0.000     -.436641   -.3001329
+ incarc_rate |   .0016126   .0001807     8.92   0.000     .0012581    .0019672
+     density |   .0266885   .0143494     1.86   0.063    -.0014651     .054842
+      avginc |   .0012051   .0072778     0.17   0.869     -.013074    .0154842
+         pop |   .0427098   .0031466    13.57   0.000     .0365361    .0488836
+      pb1064 |   .0808526   .0199924     4.04   0.000     .0416274    .1200778
+      pw1064 |   .0312005   .0097271     3.21   0.001      .012116    .0502851
+      pm1029 |   .0088709   .0120604     0.74   0.462    -.0147917    .0325334
+       _cons |   2.981738   .6090198     4.90   0.000     1.786839    4.176638
+------------------------------------------------------------------------------
+
+. estimates store ols_w_ctrls 
+
+. quietly estadd local fixeds "No", replace
+
+. quietly estadd local fixedy "No", replace
+
+. quietly estadd local clusters "No", replace
+
+. test pm1029 = pw1064 = pb1064 = 0
+
+ ( 1)  - pw1064 + pm1029 = 0
+ ( 2)  - pb1064 + pm1029 = 0
+ ( 3)  pm1029 = 0
+
+       F(  3,  1164) =   14.14
+            Prob > F =    0.0000
+
+. estadd scalar p_value2 = r(p)
+
+added scalar:
+           e(p_value2) =  4.672e-09
+
+. estadd scalar Fs2 = r(F)
+
+added scalar:
+                e(Fs2) =  14.141832
+
+. 
+. 
+. 
+. * Simple Regression with controls and State Fixed effects and cluster std errors
+. 
+. xtreg ln_vio shall incarc_rate density avginc pop pb1064 pw1064 pm1029, fe vce(cluster stateid)
+
+Fixed-effects (within) regression               Number of obs     =      1,173
+Group variable: stateid                         Number of groups  =         51
+
+R-sq:                                           Obs per group:
+     within  = 0.2178                                         min =         23
+     between = 0.0033                                         avg =       23.0
+     overall = 0.0001                                         max =         23
+
+                                                F(8,50)           =      34.10
+corr(u_i, Xb)  = -0.3687                        Prob > F          =     0.0000
+
+                               (Std. Err. adjusted for 51 clusters in stateid)
+------------------------------------------------------------------------------
+             |               Robust
+      ln_vio |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       shall |  -.0461415   .0417616    -1.10   0.275    -.1300223    .0377392
+ incarc_rate |   -.000071   .0002504    -0.28   0.778    -.0005739    .0004318
+     density |  -.1722901   .1376129    -1.25   0.216    -.4486936    .1041135
+      avginc |  -.0092037   .0129649    -0.71   0.481    -.0352445     .016837
+         pop |   .0115247    .014224     0.81   0.422    -.0170452    .0400945
+      pb1064 |   .1042804   .0326849     3.19   0.002     .0386308    .1699301
+      pw1064 |   .0408611   .0134585     3.04   0.004     .0138289    .0678932
+      pm1029 |  -.0502725   .0206949    -2.43   0.019    -.0918394   -.0087057
+       _cons |   3.866017   .7701057     5.02   0.000     2.319214    5.412819
+-------------+----------------------------------------------------------------
+     sigma_u |  .68024951
+     sigma_e |  .16072287
+         rho |  .94712779   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store state_effects 
+
+. quietly estadd local fixeds "Yes", replace
+
+. quietly estadd local fixedy "No", replace
+
+. quietly estadd local clusters "Yes", replace
+
+. test pm1029 = pw1064 = pb1064 = 0
+
+ ( 1)  - pw1064 + pm1029 = 0
+ ( 2)  - pb1064 + pm1029 = 0
+ ( 3)  pm1029 = 0
+
+       F(  3,    50) =    4.69
+            Prob > F =    0.0058
+
+. estadd scalar p_value2 = r(p)
+
+added scalar:
+           e(p_value2) =  .00579983
+
+. estadd scalar Fs2 = r(F)
+
+added scalar:
+                e(Fs2) =  4.6906063
+
+. 
+. 
+. 
+. * Simple Regression with controls and State and Time Fixed effects and cluster std errors at the state level
+. 
+. xtreg ln_vio shall incarc_rate density avginc pop pb1064 pw1064 pm1029 i.year, fe vce(cluster stateid)
+
+Fixed-effects (within) regression               Number of obs     =      1,173
+Group variable: stateid                         Number of groups  =         51
+
+R-sq:                                           Obs per group:
+     within  = 0.4180                                         min =         23
+     between = 0.0419                                         avg =       23.0
+     overall = 0.0009                                         max =         23
+
+                                                F(30,50)          =      56.86
+corr(u_i, Xb)  = -0.2929                        Prob > F          =     0.0000
+
+                               (Std. Err. adjusted for 51 clusters in stateid)
+------------------------------------------------------------------------------
+             |               Robust
+      ln_vio |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       shall |  -.0279935   .0407168    -0.69   0.495    -.1097757    .0537886
+ incarc_rate |    .000076   .0002079     0.37   0.716    -.0003416    .0004935
+     density |   -.091555   .1238622    -0.74   0.463    -.3403396    .1572296
+      avginc |   .0009587   .0164931     0.06   0.954    -.0321688    .0340861
+         pop |  -.0047544   .0152294    -0.31   0.756    -.0353436    .0258347
+      pb1064 |   .0291862   .0495407     0.59   0.558    -.0703192    .1286916
+      pw1064 |   .0092501   .0237564     0.39   0.699    -.0384659    .0569662
+      pm1029 |   .0733254   .0524733     1.40   0.168    -.0320704    .1787211
+             |
+        year |
+         78  |   .0585261   .0161556     3.62   0.001     .0260767    .0909755
+         79  |   .1639486   .0244579     6.70   0.000     .1148233    .2130738
+         80  |   .2170759   .0334184     6.50   0.000     .1499531    .2841987
+         81  |   .2172551   .0391956     5.54   0.000     .1385284    .2959819
+         82  |   .1946328   .0465743     4.18   0.000     .1010856      .28818
+         83  |    .158645   .0593845     2.67   0.010     .0393676    .2779223
+         84  |   .1929883   .0770021     2.51   0.015     .0383251    .3476515
+         85  |   .2444764   .0922217     2.65   0.011     .0592438    .4297091
+         86  |   .3240904   .1089181     2.98   0.004     .1053219    .5428589
+         87  |    .324365   .1249881     2.60   0.012      .073319    .5754111
+         88  |   .3867412   .1397074     2.77   0.008     .1061305    .6673518
+         89  |   .4422143   .1535358     2.88   0.006     .1338286    .7505999
+         90  |   .5430478   .1960859     2.77   0.008     .1491976     .936898
+         91  |   .5959456   .2040685     2.92   0.005     .1860618    1.005829
+         92  |   .6275171   .2170306     2.89   0.006     .1915982    1.063436
+         93  |   .6497414   .2246177     2.89   0.006     .1985834    1.100899
+         94  |   .6354187   .2332437     2.72   0.009     .1669349    1.103903
+         95  |   .6276831   .2423607     2.59   0.013     .1408874    1.114479
+         96  |   .5713423   .2534067     2.25   0.029       .06236    1.080325
+         97  |   .5501153   .2613516     2.10   0.040     .0251751    1.075055
+         98  |   .4932904   .2746546     1.80   0.079    -.0583697     1.04495
+         99  |   .4328776   .2862197     1.51   0.137    -.1420117    1.007767
+             |
+       _cons |   3.765525   1.152108     3.27   0.002     1.451448    6.079603
+-------------+----------------------------------------------------------------
+     sigma_u |   .6663043
+     sigma_e |   .1400264
+         rho |  .95770338   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store state_time
+
+. 
+. testparm i.year
+
+ ( 1)  78.year = 0
+ ( 2)  79.year = 0
+ ( 3)  80.year = 0
+ ( 4)  81.year = 0
+ ( 5)  82.year = 0
+ ( 6)  83.year = 0
+ ( 7)  84.year = 0
+ ( 8)  85.year = 0
+ ( 9)  86.year = 0
+ (10)  87.year = 0
+ (11)  88.year = 0
+ (12)  89.year = 0
+ (13)  90.year = 0
+ (14)  91.year = 0
+ (15)  92.year = 0
+ (16)  93.year = 0
+ (17)  94.year = 0
+ (18)  95.year = 0
+ (19)  96.year = 0
+ (20)  97.year = 0
+ (21)  98.year = 0
+ (22)  99.year = 0
+
+       F( 22,    50) =   21.62
+            Prob > F =    0.0000
+
+. estadd scalar p_value1 = r(p)
+
+added scalar:
+           e(p_value1) =  2.013e-18
+
+. estadd scalar Fs1 = r(F)
+
+added scalar:
+                e(Fs1) =  21.621583
+
+. test pm1029 = pw1064 = pb1064 = 0
+
+ ( 1)  - pw1064 + pm1029 = 0
+ ( 2)  - pb1064 + pm1029 = 0
+ ( 3)  pm1029 = 0
+
+       F(  3,    50) =    3.42
+            Prob > F =    0.0241
+
+. estadd scalar p_value2 = r(p)
+
+added scalar:
+           e(p_value2) =  .02413077
+
+. estadd scalar Fs2 = r(F)
+
+added scalar:
+                e(Fs2) =  3.4210792
+
+. quietly estadd local fixeds "Yes", replace
+
+. quietly estadd local fixedy "Yes", replace
+
+. quietly estadd local clusters "Yes", replace
+
+. 
+. * TABLE 2
+. 
+. #delimit ;
+delimiter now ;
+. esttab ols ols_w_ctrls state_effects state_time using "Table 2.rtf",
+>         replace
+>         b(4) se(4) 
+>         
+>         keep(shall incarc_rate density avginc pop pb1064 pw1064 pm1029)
+>         
+>         coeflabels(shall "{\i shall}" 
+>                                 incarc_rate "{\i incarc_rate}"                                  
+>                                 density "{\i density}" 
+>                                 avginc "{\i avginc}" 
+>                                 pop "{\i pop}"  
+>                                 pb1064 "{\i pb1064}" pw1064 "{\i pw1064}" 
+>                                 pm1029 "{\i pm1029}")
+>         
+>         stats(fixeds fixedy clusters Fs1 p_value1 Fs2 p_value2 r2_a, 
+>                         label("{\i States Effects}" "{\i Time Effects}" 
+>                                  "{\i Clustered s.e.'s}" 
+>                                  "{\i Time Effects = 0}" "(p-value)"
+>                                  "{\i Demogrphcs = 0}" "(p-value)"
+>                                  "{\i R{\super 2} adj}"))
+>                                  
+>         star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
+>         title({\b Table 2}: {\i Regression Analysis of the log of the                   violent crime rate an
+> d shall-issue laws})
+> 
+>         addnotes("These regressions are estimated using the panel data for all the states in the USA plus the
+>  district of Columbia. The dependent variable is the natural log of Vio. All regressions use data from 1977 t
+> o 1999. Clustered standard errors at the state level. Test on year dummy variables coefficients under the nul
+> l Time Effects = 0. This panel data can be encountered in Ayres.dta. Note that the standard errors are given 
+> in parenthesis under coefficients and p-values are given in parenthesis under the F-statistics. The significa
+> nce codes used are given at the {\i + p < 0.10, * p < 0.05, ** p < 0.01, *** p < 0.001} significance levels. 
+> ")
+>         nomtitles;
+(output written to Table 2.rtf)
+
+.         #delimit cr
+delimiter now cr
+. 
+. *Work for Table 3 Starts here
+. 
+. * Model 5
+. xtreg ln_vio shall incarc_rate density pop ln_avginc pb1064 pw1064 pm1029 i.year, fe vce(cluster stateid)
+
+Fixed-effects (within) regression               Number of obs     =      1,173
+Group variable: stateid                         Number of groups  =         51
+
+R-sq:                                           Obs per group:
+     within  = 0.4208                                         min =         23
+     between = 0.0021                                         avg =       23.0
+     overall = 0.0096                                         max =         23
+
+                                                F(30,50)          =      66.71
+corr(u_i, Xb)  = -0.1513                        Prob > F          =     0.0000
+
+                               (Std. Err. adjusted for 51 clusters in stateid)
+------------------------------------------------------------------------------
+             |               Robust
+      ln_vio |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       shall |  -.0245478   .0410199    -0.60   0.552    -.1069387    .0578432
+ incarc_rate |   .0000798   .0002105     0.38   0.706    -.0003429    .0005025
+     density |  -.0787746   .1237506    -0.64   0.527    -.3273349    .1697858
+         pop |  -.0032847   .0147056    -0.22   0.824    -.0328218    .0262524
+   ln_avginc |   .2215256   .2955861     0.75   0.457    -.3721765    .8152278
+      pb1064 |   .0330091   .0483516     0.68   0.498    -.0641079     .130126
+      pw1064 |   .0112768   .0231248     0.49   0.628    -.0351708    .0577244
+      pm1029 |   .0654244   .0528806     1.24   0.222    -.0407894    .1716382
+             |
+        year |
+         78  |   .0484306   .0189973     2.55   0.014     .0102734    .0865878
+         79  |   .1534896   .0263094     5.83   0.000     .1006455    .2063336
+         80  |   .2124716   .0328709     6.46   0.000     .1464484    .2784948
+         81  |   .2097481   .0388717     5.40   0.000      .131672    .2878243
+         82  |   .1865144   .0462123     4.04   0.000     .0936942    .2793346
+         83  |   .1446147   .0604879     2.39   0.021     .0231211    .2661083
+         84  |   .1660342   .0808435     2.05   0.045     .0036551    .3284132
+         85  |   .2103644   .0973768     2.16   0.036     .0147772    .4059515
+         86  |   .2825827   .1150668     2.46   0.018     .0514641    .5137012
+         87  |   .2769878   .1314666     2.11   0.040     .0129293    .5410463
+         88  |   .3326551   .1470136     2.26   0.028     .0373696    .6279406
+         89  |   .3817178   .1617618     2.36   0.022     .0568097    .7066259
+         90  |   .4758693   .2014946     2.36   0.022     .0711554    .8805832
+         91  |   .5287659   .2091814     2.53   0.015     .1086127    .9489192
+         92  |   .5540384   .2226542     2.49   0.016     .1068243    1.001252
+         93  |    .573997   .2307839     2.49   0.016     .1104539     1.03754
+         94  |    .554646   .2399071     2.31   0.025     .0727783    1.036514
+         95  |   .5430404   .2496527     2.18   0.034     .0415982    1.044483
+         96  |   .4820359   .2607916     1.85   0.070    -.0417795    1.005851
+         97  |   .4550705   .2690729     1.69   0.097    -.0853782    .9955193
+         98  |   .3898696   .2829232     1.38   0.174    -.1783985    .9581376
+         99  |   .3244842   .2941906     1.10   0.275    -.2664149    .9153833
+             |
+       _cons |   3.218588   1.326727     2.43   0.019     .5537792    5.883397
+-------------+----------------------------------------------------------------
+     sigma_u |  .64164611
+     sigma_e |  .13969427
+         rho |  .95474631   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store Model5 
+
+. test pm1029 = pw1064 = pb1064 = 0
+
+ ( 1)  - pw1064 + pm1029 = 0
+ ( 2)  - pb1064 + pm1029 = 0
+ ( 3)  pm1029 = 0
+
+       F(  3,    50) =    3.07
+            Prob > F =    0.0362
+
+. estadd scalar p_value2 = r(p)
+
+added scalar:
+           e(p_value2) =  .03622699
+
+. estadd scalar Fs2 = r(F)
+
+added scalar:
+                e(Fs2) =  3.0679262
+
+. 
+. test pw1064 = pb1064 = 0
+
+ ( 1)  - pb1064 + pw1064 = 0
+ ( 2)  pw1064 = 0
+
+       F(  2,    50) =    0.23
+            Prob > F =    0.7920
+
+. estadd scalar p_value3 = r(p)
+
+added scalar:
+           e(p_value3) =  .79199151
+
+. estadd scalar Fs3 = r(F)
+
+added scalar:
+                e(Fs3) =  .23429569
+
+. 
+. estadd local fixeds "Yes", replace
+
+added macro:
+             e(fixeds) : "Yes"
+
+. estadd local fixedy "Yes", replace
+
+added macro:
+             e(fixedy) : "Yes"
+
+. estadd local clusters "Yes", replace
+
+added macro:
+           e(clusters) : "Yes"
+
+. testparm i.year
+
+ ( 1)  78.year = 0
+ ( 2)  79.year = 0
+ ( 3)  80.year = 0
+ ( 4)  81.year = 0
+ ( 5)  82.year = 0
+ ( 6)  83.year = 0
+ ( 7)  84.year = 0
+ ( 8)  85.year = 0
+ ( 9)  86.year = 0
+ (10)  87.year = 0
+ (11)  88.year = 0
+ (12)  89.year = 0
+ (13)  90.year = 0
+ (14)  91.year = 0
+ (15)  92.year = 0
+ (16)  93.year = 0
+ (17)  94.year = 0
+ (18)  95.year = 0
+ (19)  96.year = 0
+ (20)  97.year = 0
+ (21)  98.year = 0
+ (22)  99.year = 0
+
+       F( 22,    50) =   23.69
+            Prob > F =    0.0000
+
+. estadd scalar p_value1 = r(p)
+
+added scalar:
+           e(p_value1) =  2.740e-19
+
+. estadd scalar Fs1 = r(F)
+
+added scalar:
+                e(Fs1) =  23.688503
+
+. 
+. 
+. * Model 6
+. xtreg ln_rob shall incarc_rate density ln_avginc pop pb1064 pw1064 pm1029 i.year, fe vce(cluster stateid)
+
+Fixed-effects (within) regression               Number of obs     =      1,173
+Group variable: stateid                         Number of groups  =         51
+
+R-sq:                                           Obs per group:
+     within  = 0.2517                                         min =         23
+     between = 0.3161                                         avg =       23.0
+     overall = 0.2966                                         max =         23
+
+                                                F(30,50)          =      45.35
+corr(u_i, Xb)  = 0.3207                         Prob > F          =     0.0000
+
+                               (Std. Err. adjusted for 51 clusters in stateid)
+------------------------------------------------------------------------------
+             |               Robust
+      ln_rob |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       shall |   .0324661   .0519605     0.62   0.535    -.0718995    .1368318
+ incarc_rate |   .0000399   .0003408     0.12   0.907    -.0006446    .0007243
+     density |  -.0281707   .1953791    -0.14   0.886    -.4206012    .3642598
+   ln_avginc |   .6730622   .4698952     1.43   0.158      -.27075    1.616874
+         pop |   .0029203   .0236791     0.12   0.902    -.0446406    .0504811
+      pb1064 |   .0207839   .0811202     0.26   0.799    -.1421508    .1837186
+      pw1064 |  -.0100966   .0323267    -0.31   0.756    -.0750268    .0548335
+      pm1029 |   .0873627   .0714797     1.22   0.227    -.0562085    .2309338
+             |
+        year |
+         78  |   .0087845   .0247403     0.36   0.724    -.0409079    .0584768
+         79  |   .1127081   .0349092     3.23   0.002     .0425908    .1828253
+         80  |   .2325976   .0434915     5.35   0.000     .1452423    .3199529
+         81  |   .2561893   .0485071     5.28   0.000       .15876    .3536186
+         82  |   .1973203   .0608383     3.24   0.002      .075123    .3195177
+         83  |     .08806   .0845366     1.04   0.303    -.0817367    .2578567
+         84  |   .0155072   .1085823     0.14   0.887    -.2025868    .2336012
+         85  |   .0331465   .1311148     0.25   0.801    -.2302053    .2964982
+         86  |   .0924903   .1573432     0.59   0.559    -.2235428    .4085234
+         87  |   .0467486   .1740168     0.27   0.789    -.3027744    .3962716
+         88  |    .067246   .1932625     0.35   0.729    -.3209332    .4554251
+         89  |   .1085352   .2195661     0.49   0.623    -.3324764    .5495468
+         90  |    .199025   .2671858     0.74   0.460    -.3376334    .7356835
+         91  |   .3148414   .2781557     1.13   0.263    -.2438507    .8735335
+         92  |   .2971376   .2943629     1.01   0.318    -.2941077     .888383
+         93  |   .3083619   .3071542     1.00   0.320    -.3085754    .9252993
+         94  |   .3117032   .3235132     0.96   0.340    -.3380923    .9614986
+         95  |   .3029901   .3341559     0.91   0.369    -.3681818     .974162
+         96  |   .2330993   .3510277     0.66   0.510    -.4719606    .9381592
+         97  |   .1519032   .3595282     0.42   0.674    -.5702303    .8740368
+         98  |   .0363784   .3719504     0.10   0.922    -.7107061    .7834628
+         99  |  -.0521812   .3879569    -0.13   0.894    -.8314155    .7270532
+             |
+       _cons |   1.885928   1.850215     1.02   0.313    -1.830338    5.602195
+-------------+----------------------------------------------------------------
+     sigma_u |  .83024425
+     sigma_e |   .1915227
+         rho |  .94947434   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store Model6
+
+. test pm1029 = pw1064 = pb1064 = 0
+
+ ( 1)  - pw1064 + pm1029 = 0
+ ( 2)  - pb1064 + pm1029 = 0
+ ( 3)  pm1029 = 0
+
+       F(  3,    50) =    0.96
+            Prob > F =    0.4190
+
+. estadd scalar p_value2 = r(p)
+
+added scalar:
+           e(p_value2) =  .41895309
+
+. estadd scalar Fs2 = r(F)
+
+added scalar:
+                e(Fs2) =  .9599983
+
+. estadd local fixeds "Yes", replace
+
+added macro:
+             e(fixeds) : "Yes"
+
+. estadd local fixedy "Yes", replace
+
+added macro:
+             e(fixedy) : "Yes"
+
+. estadd local clusters "Yes", replace
+
+added macro:
+           e(clusters) : "Yes"
+
+. testparm i.year
+
+ ( 1)  78.year = 0
+ ( 2)  79.year = 0
+ ( 3)  80.year = 0
+ ( 4)  81.year = 0
+ ( 5)  82.year = 0
+ ( 6)  83.year = 0
+ ( 7)  84.year = 0
+ ( 8)  85.year = 0
+ ( 9)  86.year = 0
+ (10)  87.year = 0
+ (11)  88.year = 0
+ (12)  89.year = 0
+ (13)  90.year = 0
+ (14)  91.year = 0
+ (15)  92.year = 0
+ (16)  93.year = 0
+ (17)  94.year = 0
+ (18)  95.year = 0
+ (19)  96.year = 0
+ (20)  97.year = 0
+ (21)  98.year = 0
+ (22)  99.year = 0
+
+       F( 22,    50) =   26.63
+            Prob > F =    0.0000
+
+. estadd scalar p_value1 = r(p)
+
+added scalar:
+           e(p_value1) =  2.060e-20
+
+. estadd scalar Fs1 = r(F)
+
+added scalar:
+                e(Fs1) =  26.627288
+
+. 
+. * Model 7 
+. xtreg ln_mur shall incarc_rate density ln_avginc pop pb1064 pw1064 pm1029 i.year, fe vce(cluster stateid)
+
+Fixed-effects (within) regression               Number of obs     =      1,173
+Group variable: stateid                         Number of groups  =         51
+
+R-sq:                                           Obs per group:
+     within  = 0.2925                                         min =         23
+     between = 0.1790                                         avg =       23.0
+     overall = 0.1311                                         max =         23
+
+                                                F(30,50)          =      80.76
+corr(u_i, Xb)  = -0.8420                        Prob > F          =     0.0000
+
+                               (Std. Err. adjusted for 51 clusters in stateid)
+------------------------------------------------------------------------------
+             |               Robust
+      ln_mur |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       shall |  -.0234149   .0384699    -0.61   0.546    -.1006839     .053854
+ incarc_rate |   -.000115   .0003801    -0.30   0.763    -.0008784    .0006483
+     density |  -.5956339   .3248388    -1.83   0.073    -1.248092    .0568241
+   ln_avginc |   .8894521   .2282253     3.90   0.000     .4310482    1.347856
+         pop |  -.0333807   .0212933    -1.57   0.123    -.0761496    .0093882
+      pb1064 |   .0145462   .0768871     0.19   0.851     -.139886    .1689784
+      pw1064 |  -.0081403   .0201362    -0.40   0.688    -.0485851    .0323044
+      pm1029 |   .0686744   .0410002     1.67   0.100    -.0136769    .1510257
+             |
+        year |
+         78  |  -.0107667   .0323088    -0.33   0.740    -.0756608    .0541275
+         79  |    .049061    .030291     1.62   0.112    -.0117802    .1099022
+         80  |   .0863612   .0404295     2.14   0.038     .0051562    .1675661
+         81  |   .0964145    .050241     1.92   0.061    -.0044976    .1973265
+         82  |   .0174792   .0563083     0.31   0.758    -.0956195    .1305778
+         83  |  -.0422237   .0624264    -0.68   0.502    -.1676107    .0831633
+         84  |  -.1584622   .0709061    -2.23   0.030    -.3008813   -.0160431
+         85  |  -.1145116   .0847948    -1.35   0.183    -.2848271    .0558038
+         86  |  -.0449724   .0905516    -0.50   0.622    -.2268505    .1369058
+         87  |  -.0647927   .1009658    -0.64   0.524    -.2675884    .1380031
+         88  |  -.0555348   .1191635    -0.47   0.643    -.2948817    .1838121
+         89  |  -.0562569   .1312811    -0.43   0.670    -.3199427    .2074289
+         90  |   .0308871    .161899     0.19   0.849    -.2942966    .3560709
+         91  |   .0759456   .1723952     0.44   0.661    -.2703205    .4222116
+         92  |   .0363596   .1794397     0.20   0.840    -.3240555    .3967748
+         93  |   .1215834   .1864445     0.65   0.517    -.2529013    .4960681
+         94  |   .0094146   .1926462     0.05   0.961    -.3775267    .3963558
+         95  |   .0209747   .1950919     0.11   0.915     -.370879    .4128284
+         96  |  -.0500499   .2079761    -0.24   0.811     -.467782    .3676823
+         97  |   -.155747   .2139254    -0.73   0.470    -.5854287    .2739347
+         98  |  -.2191659   .2268439    -0.97   0.339    -.6747954    .2364636
+         99  |  -.2861002   .2358481    -1.21   0.231     -.759815    .1876147
+             |
+       _cons |  -.7686545   1.094698    -0.70   0.486     -2.96742     1.43011
+-------------+----------------------------------------------------------------
+     sigma_u |  1.1713147
+     sigma_e |  .20254216
+         rho |  .97096725   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store Model7
+
+. test pm1029 = pw1064 = pb1064 = 0
+
+ ( 1)  - pw1064 + pm1029 = 0
+ ( 2)  - pb1064 + pm1029 = 0
+ ( 3)  pm1029 = 0
+
+       F(  3,    50) =    2.59
+            Prob > F =    0.0633
+
+. estadd scalar p_value2 = r(p)
+
+added scalar:
+           e(p_value2) =  .06332457
+
+. estadd scalar Fs2 = r(F)
+
+added scalar:
+                e(Fs2) =  2.5872296
+
+. 
+. test pw1064 = pb1064 = 0
+
+ ( 1)  - pb1064 + pw1064 = 0
+ ( 2)  pw1064 = 0
+
+       F(  2,    50) =    0.28
+            Prob > F =    0.7570
+
+. estadd scalar p_value3 = r(p)
+
+added scalar:
+           e(p_value3) =  .7570336
+
+. estadd scalar Fs3 = r(F)
+
+added scalar:
+                e(Fs3) =  .27990296
+
+. 
+. estadd local fixeds "Yes", replace
+
+added macro:
+             e(fixeds) : "Yes"
+
+. estadd local fixedy "Yes", replace
+
+added macro:
+             e(fixedy) : "Yes"
+
+. estadd local clusters "Yes", replace
+
+added macro:
+           e(clusters) : "Yes"
+
+. testparm i.year
+
+ ( 1)  78.year = 0
+ ( 2)  79.year = 0
+ ( 3)  80.year = 0
+ ( 4)  81.year = 0
+ ( 5)  82.year = 0
+ ( 6)  83.year = 0
+ ( 7)  84.year = 0
+ ( 8)  85.year = 0
+ ( 9)  86.year = 0
+ (10)  87.year = 0
+ (11)  88.year = 0
+ (12)  89.year = 0
+ (13)  90.year = 0
+ (14)  91.year = 0
+ (15)  92.year = 0
+ (16)  93.year = 0
+ (17)  94.year = 0
+ (18)  95.year = 0
+ (19)  96.year = 0
+ (20)  97.year = 0
+ (21)  98.year = 0
+ (22)  99.year = 0
+
+       F( 22,    50) =   19.27
+            Prob > F =    0.0000
+
+. estadd scalar p_value1 = r(p)
+
+added scalar:
+           e(p_value1) =  2.410e-17
+
+. estadd scalar Fs1 = r(F)
+
+added scalar:
+                e(Fs1) =  19.267404
+
+. 
+. *TABLE 3
+. 
+. #delimit ;
+delimiter now ;
+. esttab Model5 Model6 Model7 using "TABLE 3.rtf", replace
+> 
+>         b(4) se(4) 
+>         
+>         keep(shall incarc_rate density ln_avginc pop pb1064 
+>                 pw1064 pm1029)
+>         
+>         coeflabels(shall "{\i shall}" 
+>                                 incarc_rate "{\i incarc_rate}"                                  
+>                                 density "{\i density}" 
+>                                 ln_avginc "{\i Ln_avginc}" 
+>                                 pop "{\i pop}"  
+>                                 pb1064 "{\i pb1064}" pw1064 "{\i pw1064}" 
+>                                 pm1029 "{\i pm1029}")
+>         
+>         stats(fixeds fixedy clusters 
+>                         Fs1 p_value1 Fs2 p_value2 Fs3 p_value3 r2_a, 
+>                         label("{\i States Effects}" 
+>                         "{\i Time Effects}"                             
+>                         "{\i Clustered s.e.'s}" 
+>                         "{\i Time Effects = 0}" "(p-value)"
+>                         "{\i Demogrphcs = 0}" "(p-value)"
+>                         "{\i Race = 0}" "(p-value)"
+>                         "{\i R{\super 2} adj}"))
+>         
+>         title({\b Table 3}: {\i Regression Analysis for the log of 
+>         the three types of crimes and shall-issue laws})
+>         star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
+>         nonumber
+>         mtitles((5)Vio (6)Robbery (7)Murder)
+> 
+>         addnotes("These regressions are estimated using the panel data for all the states in the USA plus the
+>  district of Columbia. The dependent variables are the natural log of Vio, Rob and Mur, respectivelly.  All r
+> egressions use data from 1977 to 1999.  Clustered standard errors at the state level. Test on year dummy vari
+> ables coefficients under the null Time Effects = 0. Test on pb1064 = pw1064 = pm1029 = 0 under the null Demog
+> raphics = 0 and pb1064 = pw1064 = 0 under the null Race = 0. This panel data can be encountered in Ayres.dta.
+>  Note that the standard errors are given in parenthesis under coefficients and p-values are given in parenthe
+> sis under the F-statistics. The significance codes used are given at the {\i + p < 0.10, * p < 0.05, ** p < 0
+> .01, *** p < 0.001} significance levels.");
+(output written to TABLE 3.rtf)
+
+.         #delimit cr
+delimiter now cr
+. 
+. *Work for table 4 starts here
+. 
+. * Model 8
+. xtreg ln_vio shall incarc_rate density pop ln_avginc pm1029 i.year, fe vce(cluster stateid)
+
+Fixed-effects (within) regression               Number of obs     =      1,173
+Group variable: stateid                         Number of groups  =         51
+
+R-sq:                                           Obs per group:
+     within  = 0.4195                                         min =         23
+     between = 0.1179                                         avg =       23.0
+     overall = 0.0087                                         max =         23
+
+                                                F(28,50)          =      63.95
+corr(u_i, Xb)  = -0.3258                        Prob > F          =     0.0000
+
+                               (Std. Err. adjusted for 51 clusters in stateid)
+------------------------------------------------------------------------------
+             |               Robust
+      ln_vio |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       shall |  -.0226974   .0428416    -0.53   0.599    -.1087474    .0633525
+ incarc_rate |   .0000467   .0002372     0.20   0.845    -.0004298    .0005231
+     density |  -.0677512   .1312496    -0.52   0.608    -.3313737    .1958714
+         pop |  -.0059146   .0112208    -0.53   0.600    -.0284522     .016623
+   ln_avginc |   .2043812   .2840289     0.72   0.475    -.3661077    .7748701
+      pm1029 |    .081607   .0333286     2.45   0.018     .0146645    .1485494
+             |
+        year |
+         78  |   .0529265   .0159268     3.32   0.002     .0209365    .0849165
+         79  |   .1613689   .0207579     7.77   0.000     .1196754    .2030624
+         80  |    .223261    .024851     8.98   0.000     .1733463    .2731756
+         81  |   .2241495   .0288508     7.77   0.000     .1662011     .282098
+         82  |   .2045546   .0335729     6.09   0.000     .1371214    .2719877
+         83  |   .1663555   .0446411     3.73   0.000     .0766912    .2560199
+         84  |   .1924201   .0613736     3.14   0.003     .0691476    .3156925
+         85  |   .2407594   .0747882     3.22   0.002     .0905429    .3909758
+         86  |   .3168705   .0912388     3.47   0.001     .1336119    .5001291
+         87  |   .3156601   .1046284     3.02   0.004     .1055078    .5258124
+         88  |   .3763819    .116456     3.23   0.002     .1424732    .6102906
+         89  |   .4300341   .1290371     3.33   0.002     .1708553    .6892128
+         90  |   .5497794   .1369742     4.01   0.000     .2746585    .8249003
+         91  |   .6070069   .1428672     4.25   0.000     .3200496    .8939641
+         92  |   .6368812   .1527697     4.17   0.000     .3300341    .9437282
+         93  |   .6607055   .1588564     4.16   0.000      .341633     .979778
+         94  |   .6458566    .166173     3.89   0.000     .3120883     .979625
+         95  |   .6386489   .1712422     3.73   0.000     .2946988    .9825991
+         96  |   .5816375   .1775753     3.28   0.002     .2249671     .938308
+         97  |   .5584308   .1845452     3.03   0.004     .1877609    .9291006
+         98  |   .4974731   .1938404     2.57   0.013     .1081332     .886813
+         99  |   .4366761   .1997331     2.19   0.034     .0355003    .8378519
+             |
+       _cons |   3.851288   .8128053     4.74   0.000      2.21872    5.483855
+-------------+----------------------------------------------------------------
+     sigma_u |  .67113615
+     sigma_e |  .13972065
+         rho |  .95845932   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store Model8 
+
+. 
+. estadd local fixeds "Yes", replace
+
+added macro:
+             e(fixeds) : "Yes"
+
+. estadd local fixedy "Yes", replace
+
+added macro:
+             e(fixedy) : "Yes"
+
+. estadd local clusters "Yes", replace
+
+added macro:
+           e(clusters) : "Yes"
+
+. testparm i.year
+
+ ( 1)  78.year = 0
+ ( 2)  79.year = 0
+ ( 3)  80.year = 0
+ ( 4)  81.year = 0
+ ( 5)  82.year = 0
+ ( 6)  83.year = 0
+ ( 7)  84.year = 0
+ ( 8)  85.year = 0
+ ( 9)  86.year = 0
+ (10)  87.year = 0
+ (11)  88.year = 0
+ (12)  89.year = 0
+ (13)  90.year = 0
+ (14)  91.year = 0
+ (15)  92.year = 0
+ (16)  93.year = 0
+ (17)  94.year = 0
+ (18)  95.year = 0
+ (19)  96.year = 0
+ (20)  97.year = 0
+ (21)  98.year = 0
+ (22)  99.year = 0
+
+       F( 22,    50) =   45.05
+            Prob > F =    0.0000
+
+. estadd scalar p_value1 = r(p)
+
+added scalar:
+           e(p_value1) =  1.243e-25
+
+. estadd scalar Fs1 = r(F)
+
+added scalar:
+                e(Fs1) =  45.053824
+
+. 
+. * Model 9 
+. xtreg ln_rob shall incarc_rate density ln_avginc pop i.year, fe vce(cluster stateid)
+
+Fixed-effects (within) regression               Number of obs     =      1,173
+Group variable: stateid                         Number of groups  =         51
+
+R-sq:                                           Obs per group:
+     within  = 0.2307                                         min =         23
+     between = 0.4064                                         avg =       23.0
+     overall = 0.3794                                         max =         23
+
+                                                F(27,50)          =      48.01
+corr(u_i, Xb)  = 0.3983                         Prob > F          =     0.0000
+
+                               (Std. Err. adjusted for 51 clusters in stateid)
+------------------------------------------------------------------------------
+             |               Robust
+      ln_rob |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       shall |   .0531365   .0565658     0.94   0.352    -.0604792    .1667522
+ incarc_rate |   .0000436   .0003411     0.13   0.899    -.0006415    .0007287
+     density |   .1166706   .1923606     0.61   0.547     -.269697    .5030382
+   ln_avginc |   .8361981   .4506667     1.86   0.069    -.0689927    1.741389
+         pop |   .0151998   .0182422     0.83   0.409    -.0214408    .0518404
+             |
+        year |
+         78  |   -.010585   .0254381    -0.42   0.679     -.061679    .0405089
+         79  |   .0825799   .0300955     2.74   0.008     .0221313    .1430284
+         80  |   .1998721   .0284329     7.03   0.000      .142763    .2569812
+         81  |   .2087938   .0300284     6.95   0.000       .14848    .2691076
+         82  |   .1310276   .0343979     3.81   0.000     .0619374    .2001178
+         83  |  -.0038237   .0416628    -0.09   0.927    -.0875058    .0798585
+         84  |  -.1096375   .0578657    -1.89   0.064    -.2258642    .0065892
+         85  |  -.1206678   .0697351    -1.73   0.090    -.2607348    .0193993
+         86  |  -.0913168   .0797234    -1.15   0.257    -.2514459    .0688123
+         87  |  -.1647946   .0848731    -1.94   0.058    -.3352672    .0056779
+         88  |  -.1717593   .0959762    -1.79   0.080    -.3645332    .0210145
+         89  |  -.1547639   .1067625    -1.45   0.153    -.3692026    .0596748
+         90  |   -.103284   .1178664    -0.88   0.385    -.3400257    .1334576
+         91  |  -.0063081     .11864    -0.05   0.958    -.2446035    .2319873
+         92  |  -.0429557   .1256027    -0.34   0.734    -.2952361    .2093246
+         93  |   -.045802   .1285874    -0.36   0.723    -.3040775    .2124734
+         94  |  -.0586561   .1335882    -0.44   0.662     -.326976    .2096637
+         95  |  -.0798291   .1416263    -0.56   0.576    -.3642938    .2046356
+         96  |  -.1602054   .1441029    -1.11   0.272    -.4496445    .1292337
+         97  |  -.2501729   .1576491    -1.59   0.119    -.5668204    .0664745
+         98  |  -.3743013   .1704877    -2.20   0.033    -.7167358   -.0318668
+         99  |  -.4697083   .1797318    -2.61   0.012    -.8307103   -.1087063
+             |
+       _cons |   2.449919   1.124566     2.18   0.034     .1911604    4.708677
+-------------+----------------------------------------------------------------
+     sigma_u |  .80154725
+     sigma_e |  .19392431
+         rho |    .944703   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store Model9
+
+. 
+. estadd local fixeds "Yes", replace
+
+added macro:
+             e(fixeds) : "Yes"
+
+. estadd local fixedy "Yes", replace
+
+added macro:
+             e(fixedy) : "Yes"
+
+. estadd local clusters "Yes", replace
+
+added macro:
+           e(clusters) : "Yes"
+
+. testparm i.year
+
+ ( 1)  78.year = 0
+ ( 2)  79.year = 0
+ ( 3)  80.year = 0
+ ( 4)  81.year = 0
+ ( 5)  82.year = 0
+ ( 6)  83.year = 0
+ ( 7)  84.year = 0
+ ( 8)  85.year = 0
+ ( 9)  86.year = 0
+ (10)  87.year = 0
+ (11)  88.year = 0
+ (12)  89.year = 0
+ (13)  90.year = 0
+ (14)  91.year = 0
+ (15)  92.year = 0
+ (16)  93.year = 0
+ (17)  94.year = 0
+ (18)  95.year = 0
+ (19)  96.year = 0
+ (20)  97.year = 0
+ (21)  98.year = 0
+ (22)  99.year = 0
+
+       F( 22,    50) =   36.22
+            Prob > F =    0.0000
+
+. estadd scalar p_value1 = r(p)
+
+added scalar:
+           e(p_value1) =  1.946e-23
+
+. estadd scalar Fs1 = r(F)
+
+added scalar:
+                e(Fs1) =  36.220781
+
+. 
+. * Model 10
+. 
+. xtreg ln_mur shall incarc_rate density ln_avginc pop pm1029 i.year, fe vce(cluster stateid)
+
+Fixed-effects (within) regression               Number of obs     =      1,173
+Group variable: stateid                         Number of groups  =         51
+
+R-sq:                                           Obs per group:
+     within  = 0.2904                                         min =         23
+     between = 0.2474                                         avg =       23.0
+     overall = 0.1827                                         max =         23
+
+                                                F(28,50)          =      51.14
+corr(u_i, Xb)  = -0.8473                        Prob > F          =     0.0000
+
+                               (Std. Err. adjusted for 51 clusters in stateid)
+------------------------------------------------------------------------------
+             |               Robust
+      ln_mur |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       shall |  -.0295947   .0390688    -0.76   0.452    -.1080667    .0488774
+ incarc_rate |   -.000078    .000366    -0.21   0.832    -.0008132    .0006572
+     density |  -.5043243   .2191025    -2.30   0.026    -.9444046    -.064244
+   ln_avginc |   .9108937   .2351745     3.87   0.000     .4385318    1.383256
+         pop |  -.0269241   .0213426    -1.26   0.213     -.069792    .0159437
+      pm1029 |   .0597137   .0269136     2.22   0.031     .0056561    .1137713
+             |
+        year |
+         78  |  -.0120885   .0311595    -0.39   0.700    -.0746742    .0504972
+         79  |   .0477623   .0269633     1.77   0.083    -.0063951    .1019197
+         80  |   .0876962   .0371785     2.36   0.022     .0130209    .1623715
+         81  |   .0961722   .0415382     2.32   0.025     .0127402    .1796041
+         82  |   .0168699   .0411875     0.41   0.684    -.0658576    .0995975
+         83  |  -.0439882   .0502986    -0.87   0.386    -.1450159    .0570395
+         84  |  -.1621991   .0592894    -2.74   0.009    -.2812854   -.0431128
+         85  |   -.119532   .0742165    -1.61   0.114    -.2686002    .0295363
+         86  |  -.0509978   .0744852    -0.68   0.497    -.2006058    .0986101
+         87  |  -.0717922   .0905272    -0.79   0.431    -.2536214    .1100371
+         88  |  -.0636845   .0984089    -0.65   0.520    -.2613445    .1339755
+         89  |  -.0652994   .1095187    -0.60   0.554    -.2852742    .1546755
+         90  |   .0063096   .1159106     0.05   0.957    -.2265037     .239123
+         91  |   .0509426   .1271133     0.40   0.690     -.204372    .3062571
+         92  |   .0106216   .1385176     0.08   0.939    -.2675991    .2888423
+         93  |   .0951642   .1373079     0.69   0.491    -.1806268    .3709552
+         94  |  -.0184881    .147682    -0.13   0.901    -.3151162      .27814
+         95  |  -.0077939   .1537285    -0.05   0.960    -.3165666    .3009789
+         96  |   -.078994   .1622083    -0.49   0.628     -.404799     .246811
+         97  |  -.1850325   .1706732    -1.08   0.284    -.5278398    .1577748
+         98  |  -.2495834   .1776676    -1.40   0.166    -.6064393    .1072724
+         99  |  -.3177887   .1951369    -1.63   0.110    -.7097327    .0741553
+             |
+       _cons |   -1.17128   .7284234    -1.61   0.114    -2.634362    .2918012
+-------------+----------------------------------------------------------------
+     sigma_u |   1.149844
+     sigma_e |  .20265557
+         rho |  .96987312   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store Model10
+
+. 
+. estadd local fixeds "Yes", replace
+
+added macro:
+             e(fixeds) : "Yes"
+
+. estadd local fixedy "Yes", replace
+
+added macro:
+             e(fixedy) : "Yes"
+
+. estadd local clusters "Yes", replace
+
+added macro:
+           e(clusters) : "Yes"
+
+. testparm i.year
+
+ ( 1)  78.year = 0
+ ( 2)  79.year = 0
+ ( 3)  80.year = 0
+ ( 4)  81.year = 0
+ ( 5)  82.year = 0
+ ( 6)  83.year = 0
+ ( 7)  84.year = 0
+ ( 8)  85.year = 0
+ ( 9)  86.year = 0
+ (10)  87.year = 0
+ (11)  88.year = 0
+ (12)  89.year = 0
+ (13)  90.year = 0
+ (14)  91.year = 0
+ (15)  92.year = 0
+ (16)  93.year = 0
+ (17)  94.year = 0
+ (18)  95.year = 0
+ (19)  96.year = 0
+ (20)  97.year = 0
+ (21)  98.year = 0
+ (22)  99.year = 0
+
+       F( 22,    50) =   21.10
+            Prob > F =    0.0000
+
+. estadd scalar p_value1 = r(p)
+
+added scalar:
+           e(p_value1) =  3.404e-18
+
+. estadd scalar Fs1 = r(F)
+
+added scalar:
+                e(Fs1) =  21.104113
+
+. 
+. 
+. *TABLE 4 
+. 
+. #delimit ;
+delimiter now ;
+. esttab Model8 Model9 Model10 using "TABLE 4.rtf", replace
+> 
+>         b(4) se(4) 
+>         
+>         keep(shall incarc_rate density ln_avginc pop pm1029)
+>         
+>         coeflabels(shall "{\i shall}" 
+>                                 incarc_rate "{\i incarc_rate}"                                  
+>                                 density "{\i density}" 
+>                                 ln_avginc "{\i Ln_avginc}" 
+>                                 pop "{\i pop}"  
+>                                 pm1029 "{\i pm1029}")
+>         
+>         stats(fixeds fixedy clusters 
+>                         Fs1 p_value1 r2_a, 
+>                         label("{\i States Effects}" 
+>                         "{\i Time Effects}"                             
+>                         "{\i Clustered s.e.'s}" 
+>                         "{\i Time Effects = 0}"  "(p-value)"
+>                         "{\i R{\super 2} adj}"))
+>         
+>         title({\b Table 4}: {\i Regression Analysis of the log of the 
+>         three types of crime and shall-issue laws, some variables 
+>         omitted.})
+>         nonumber
+>         mtitles((8)Vio (9)Robbery (10)Murder)
+>         star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
+>         
+>         addnotes("These regressions are estimated using the panel data for all the states in the USA plus the
+>  district of Columbia. The dependent variables are the natural log of Vio, Rob and Mur, respectivelly. All re
+> gressions use data from 1977 to 1999.  Clustered standard errors at the state level. Test on year dummy varia
+> bles coefficients under the null Time Effects = 0. This panel data can be encountered in Ayres.dta. Note that
+>  the standard errors are given in parenthesis under coefficients and p-values are given in parenthesis under 
+> the F-statistics. The significance codes used are given at the {\i + p < 0.10, * p < 0.05, ** p < 0.01, *** p
+>  < 0.001} significance levels.");
+(output written to TABLE 4.rtf)
+
+. #delimit cr
+delimiter now cr
+. 
+. 
+. * Work for Table 5 starts here
+. 
+. * Model 11
+. 
+. xtreg ln_vio shall density pop ln_avginc pm1029 i.year, fe vce(cluster stateid)
+
+Fixed-effects (within) regression               Number of obs     =      1,173
+Group variable: stateid                         Number of groups  =         51
+
+R-sq:                                           Obs per group:
+     within  = 0.4193                                         min =         23
+     between = 0.1432                                         avg =       23.0
+     overall = 0.0280                                         max =         23
+
+                                                F(27,50)          =      65.01
+corr(u_i, Xb)  = -0.4205                        Prob > F          =     0.0000
+
+                               (Std. Err. adjusted for 51 clusters in stateid)
+------------------------------------------------------------------------------
+             |               Robust
+      ln_vio |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       shall |   -.022825    .042924    -0.53   0.597    -.1090404    .0633904
+     density |  -.0944698   .0394896    -2.39   0.021    -.1737869   -.0151527
+         pop |  -.0048573   .0118215    -0.41   0.683    -.0286015    .0188869
+   ln_avginc |    .205336   .2839787     0.72   0.473    -.3650521     .775724
+      pm1029 |   .0811609    .033346     2.43   0.019     .0141835    .1481382
+             |
+        year |
+         78  |   .0529019   .0159325     3.32   0.002     .0209006    .0849033
+         79  |   .1615298   .0208683     7.74   0.000     .1196146     .203445
+         80  |   .2232559   .0248207     8.99   0.000     .1734021    .2731098
+         81  |   .2241845   .0287714     7.79   0.000     .1663955    .2819736
+         82  |   .2050678   .0330304     6.21   0.000     .1387242    .2714114
+         83  |   .1674759   .0440269     3.80   0.000     .0790453    .2559066
+         84  |   .1937657   .0612724     3.16   0.003     .0706964     .316835
+         85  |   .2423657   .0747843     3.24   0.002     .0921571    .3925743
+         86  |   .3188453   .0907625     3.51   0.001     .1365434    .5011471
+         87  |   .3180118   .1041698     3.05   0.004     .1087806     .527243
+         88  |   .3791146   .1159414     3.27   0.002     .1462394    .6119898
+         89  |   .4332287    .128369     3.37   0.001     .1753919    .6910655
+         90  |   .5538515   .1355789     4.09   0.000     .2815334    .8261696
+         91  |   .6115293   .1408551     4.34   0.000     .3286134    .8944452
+         92  |   .6418931   .1506406     4.26   0.000     .3393227    .9444636
+         93  |   .6661252   .1564002     4.26   0.000     .3519861    .9802642
+         94  |   .6519102   .1632549     3.99   0.000      .324003    .9798174
+         95  |   .6456137   .1681617     3.84   0.000     .3078509    .9833764
+         96  |   .5891551   .1743343     3.38   0.001     .2389944    .9393158
+         97  |   .5664659   .1807615     3.13   0.003     .2033957    .9295362
+         98  |   .5062758   .1901046     2.66   0.010     .1244395     .888112
+         99  |   .4462536   .1961224     2.28   0.027     .0523301     .840177
+             |
+       _cons |   3.867372   .8256581     4.68   0.000     2.208989    5.525755
+-------------+----------------------------------------------------------------
+     sigma_u |  .69218635
+     sigma_e |  .13967534
+         rho |  .96087448   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store Model11 
+
+. 
+. estadd local fixeds "Yes", replace
+
+added macro:
+             e(fixeds) : "Yes"
+
+. estadd local fixedy "Yes", replace
+
+added macro:
+             e(fixedy) : "Yes"
+
+. estadd local clusters "Yes", replace
+
+added macro:
+           e(clusters) : "Yes"
+
+. testparm i.year
+
+ ( 1)  78.year = 0
+ ( 2)  79.year = 0
+ ( 3)  80.year = 0
+ ( 4)  81.year = 0
+ ( 5)  82.year = 0
+ ( 6)  83.year = 0
+ ( 7)  84.year = 0
+ ( 8)  85.year = 0
+ ( 9)  86.year = 0
+ (10)  87.year = 0
+ (11)  88.year = 0
+ (12)  89.year = 0
+ (13)  90.year = 0
+ (14)  91.year = 0
+ (15)  92.year = 0
+ (16)  93.year = 0
+ (17)  94.year = 0
+ (18)  95.year = 0
+ (19)  96.year = 0
+ (20)  97.year = 0
+ (21)  98.year = 0
+ (22)  99.year = 0
+
+       F( 22,    50) =   45.25
+            Prob > F =    0.0000
+
+. estadd scalar p_value1 = r(p)
+
+added scalar:
+           e(p_value1) =  1.123e-25
+
+. estadd scalar Fs1 = r(F)
+
+added scalar:
+                e(Fs1) =  45.250811
+
+. 
+. * Model 12 
+. xtreg ln_rob shall density ln_avginc pop i.year, fe vce(cluster stateid)
+
+Fixed-effects (within) regression               Number of obs     =      1,173
+Group variable: stateid                         Number of groups  =         51
+
+R-sq:                                           Obs per group:
+     within  = 0.2306                                         min =         23
+     between = 0.4229                                         avg =       23.0
+     overall = 0.3857                                         max =         23
+
+                                                F(26,50)          =      49.53
+corr(u_i, Xb)  = 0.4314                         Prob > F          =     0.0000
+
+                               (Std. Err. adjusted for 51 clusters in stateid)
+------------------------------------------------------------------------------
+             |               Robust
+      ln_rob |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       shall |   .0528594   .0563043     0.94   0.352    -.0602312    .1659499
+     density |   .0914338   .0421454     2.17   0.035     .0067821    .1760854
+   ln_avginc |   .8363501   .4512419     1.85   0.070     -.069996    1.742696
+         pop |   .0161715   .0165904     0.97   0.334    -.0171514    .0494944
+             |
+        year |
+         78  |  -.0105102    .025403    -0.41   0.681    -.0615335    .0405132
+         79  |   .0828891   .0299247     2.77   0.008     .0227835    .1429947
+         80  |   .2000594   .0280274     7.14   0.000     .1437648    .2563541
+         81  |   .2090889   .0293161     7.13   0.000     .1502056    .2679721
+         82  |    .131874    .031799     4.15   0.000     .0680039     .195744
+         83  |  -.0022738   .0379593    -0.06   0.952    -.0785172    .0739697
+         84  |  -.1077065   .0554587    -1.94   0.058    -.2190986    .0036856
+         85  |  -.1183428   .0669764    -1.77   0.083    -.2528689    .0161832
+         86  |  -.0884874   .0764965    -1.16   0.253     -.242135    .0651603
+         87  |  -.1614647   .0800966    -2.02   0.049    -.3223436   -.0005859
+         88  |  -.1679278    .090866    -1.85   0.071    -.3504376     .014582
+         89  |  -.1503703   .1011031    -1.49   0.143    -.3534418    .0527012
+         90  |  -.0979566   .1081056    -0.91   0.369    -.3150931    .1191799
+         91  |  -.0004561   .1062478    -0.00   0.997    -.2138612    .2129489
+         92  |   -.036544   .1118391    -0.33   0.745    -.2611794    .1880915
+         93  |  -.0389339   .1138118    -0.34   0.734    -.2675316    .1896638
+         94  |   -.051113    .120248    -0.43   0.673    -.2926382    .1904121
+         95  |  -.0713666   .1262216    -0.57   0.574    -.3248901    .1821569
+         96  |  -.1511662   .1287113    -1.17   0.246    -.4096904     .107358
+         97  |  -.2406008   .1422624    -1.69   0.097    -.5263433    .0451418
+         98  |  -.3639678   .1542772    -2.36   0.022    -.6738427   -.0540929
+         99  |  -.4586172   .1627304    -2.82   0.007    -.7854708   -.1317636
+             |
+       _cons |   2.459221   1.137329     2.16   0.035     .1748279    4.743613
+-------------+----------------------------------------------------------------
+     sigma_u |  .81053118
+     sigma_e |  .19384752
+         rho |  .94589658   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store Model12
+
+. 
+. estadd local fixeds "Yes", replace
+
+added macro:
+             e(fixeds) : "Yes"
+
+. estadd local fixedy "Yes", replace
+
+added macro:
+             e(fixedy) : "Yes"
+
+. estadd local clusters "Yes", replace
+
+added macro:
+           e(clusters) : "Yes"
+
+. testparm i.year
+
+ ( 1)  78.year = 0
+ ( 2)  79.year = 0
+ ( 3)  80.year = 0
+ ( 4)  81.year = 0
+ ( 5)  82.year = 0
+ ( 6)  83.year = 0
+ ( 7)  84.year = 0
+ ( 8)  85.year = 0
+ ( 9)  86.year = 0
+ (10)  87.year = 0
+ (11)  88.year = 0
+ (12)  89.year = 0
+ (13)  90.year = 0
+ (14)  91.year = 0
+ (15)  92.year = 0
+ (16)  93.year = 0
+ (17)  94.year = 0
+ (18)  95.year = 0
+ (19)  96.year = 0
+ (20)  97.year = 0
+ (21)  98.year = 0
+ (22)  99.year = 0
+
+       F( 22,    50) =   36.78
+            Prob > F =    0.0000
+
+. estadd scalar p_value1 = r(p)
+
+added scalar:
+           e(p_value1) =  1.368e-23
+
+. estadd scalar Fs1 = r(F)
+
+added scalar:
+                e(Fs1) =  36.78107
+
+. 
+. * Model 13
+. 
+. xtreg ln_mur shall density ln_avginc pop pm1029 i.year, fe vce(cluster stateid)
+
+Fixed-effects (within) regression               Number of obs     =      1,173
+Group variable: stateid                         Number of groups  =         51
+
+R-sq:                                           Obs per group:
+     within  = 0.2901                                         min =         23
+     between = 0.2502                                         avg =       23.0
+     overall = 0.1803                                         max =         23
+
+                                                F(27,50)          =      51.21
+corr(u_i, Xb)  = -0.8292                        Prob > F          =     0.0000
+
+                               (Std. Err. adjusted for 51 clusters in stateid)
+------------------------------------------------------------------------------
+             |               Robust
+      ln_mur |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       shall |  -.0293813   .0388826    -0.76   0.453    -.1074793    .0487167
+     density |  -.4596465    .042378   -10.85   0.000    -.5447653   -.3745277
+   ln_avginc |   .9092972   .2355659     3.86   0.000     .4361491    1.382445
+         pop |  -.0286921   .0207278    -1.38   0.172    -.0703251    .0129409
+      pm1029 |   .0604597   .0262109     2.31   0.025     .0078136    .1131057
+             |
+        year |
+         78  |  -.0120474   .0310883    -0.39   0.700      -.07449    .0503952
+         79  |   .0474932   .0265071     1.79   0.079    -.0057479    .1007343
+         80  |   .0877046    .037078     2.37   0.022     .0132313     .162178
+         81  |   .0961136   .0414518     2.32   0.025     .0128552    .1793721
+         82  |   .0160117    .040387     0.40   0.693    -.0651079    .0971314
+         83  |  -.0458617   .0485662    -0.94   0.350    -.1434098    .0516864
+         84  |  -.1644493   .0563914    -2.92   0.005    -.2777147   -.0511838
+         85  |   -.122218   .0700613    -1.74   0.087    -.2629403    .0185043
+         86  |     -.0543   .0699891    -0.78   0.442    -.1948773    .0862773
+         87  |  -.0757246   .0858602    -0.88   0.382    -.2481799    .0967306
+         88  |   -.068254    .094354    -0.72   0.473    -.2577696    .1212615
+         89  |  -.0706413   .1053933    -0.67   0.506      -.28233    .1410474
+         90  |  -.0004996   .1092833    -0.00   0.996    -.2200016    .2190025
+         91  |   .0433803   .1187654     0.37   0.716     -.195167    .2819277
+         92  |   .0022408   .1281446     0.02   0.986    -.2551453    .2596269
+         93  |   .0861017   .1261926     0.68   0.498    -.1673636     .339567
+         94  |  -.0286107   .1340044    -0.21   0.832    -.2977664    .2405451
+         95  |    -.01944   .1356424    -0.14   0.887    -.2918858    .2530057
+         96  |  -.0915646   .1425288    -0.64   0.524    -.3778422     .194713
+         97  |  -.1984685   .1476646    -1.34   0.185    -.4950616    .0981246
+         98  |  -.2643029   .1502738    -1.76   0.085    -.5661367    .0375309
+         99  |  -.3338037   .1651557    -2.02   0.049    -.6655287   -.0020786
+             |
+       _cons |  -1.198175    .664913    -1.80   0.078    -2.533692    .1373422
+-------------+----------------------------------------------------------------
+     sigma_u |  1.0943959
+     sigma_e |  .20259868
+         rho |  .96686477   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store Model13
+
+. 
+. estadd local fixeds "Yes", replace
+
+added macro:
+             e(fixeds) : "Yes"
+
+. estadd local fixedy "Yes", replace
+
+added macro:
+             e(fixedy) : "Yes"
+
+. estadd local clusters "Yes", replace
+
+added macro:
+           e(clusters) : "Yes"
+
+. testparm i.year
+
+ ( 1)  78.year = 0
+ ( 2)  79.year = 0
+ ( 3)  80.year = 0
+ ( 4)  81.year = 0
+ ( 5)  82.year = 0
+ ( 6)  83.year = 0
+ ( 7)  84.year = 0
+ ( 8)  85.year = 0
+ ( 9)  86.year = 0
+ (10)  87.year = 0
+ (11)  88.year = 0
+ (12)  89.year = 0
+ (13)  90.year = 0
+ (14)  91.year = 0
+ (15)  92.year = 0
+ (16)  93.year = 0
+ (17)  94.year = 0
+ (18)  95.year = 0
+ (19)  96.year = 0
+ (20)  97.year = 0
+ (21)  98.year = 0
+ (22)  99.year = 0
+
+       F( 22,    50) =   21.37
+            Prob > F =    0.0000
+
+. estadd scalar p_value1 = r(p)
+
+added scalar:
+           e(p_value1) =  2.593e-18
+
+. estadd scalar Fs1 = r(F)
+
+added scalar:
+                e(Fs1) =  21.370881
+
+. 
+. 
+. *TABLE 5
+. 
+. #delimit ;
+delimiter now ;
+. esttab Model11 Model12 Model13 using "TABLE 5.rtf", replace
+> 
+>         b(4) se(4) 
+>         
+>         keep(shall density ln_avginc pop pm1029)
+>         
+>         coeflabels(shall "{\i shall}" 
+>                                 density "{\i density}" 
+>                                 ln_avginc "{\i Ln_avginc}" 
+>                                 pop "{\i pop}"  
+>                                 pm1029 "{\i pm1029}")
+>         
+>         stats(fixeds fixedy clusters 
+>                         Fs1 p_value1 r2_a, 
+>                         label("{\i States Effects}" 
+>                         "{\i Time Effects}"                             
+>                         "{\i Clustered s.e.'s}" 
+>                         "{\i Time Effects = 0}"  "(p-value)"
+>                         "{\i R{\super 2} adj}"))
+>         
+>         title({\b Table 5}: {\i Regression Analysis of the log of the 
+>         three types of crime and shall-issue laws, incarc_rate 
+>         omitted.})
+>         nonumber
+>         mtitles((11)Vio (12)Robbery (13)Murder)
+>         star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
+> 
+>         addnotes("These regressions are estimated using the panel data for all the states in the USA plus the
+>  district of Columbia. The dependent variables are the natural log of Vio, Rob and Mur, respectivelly. All re
+> gressions use data from 1977 to 1999.  Clustered standard errors at the state level. Test on year dummy varia
+> bles coefficients under the null Time Effects = 0. This panel data can be encountered in Ayres.dta. Note that
+>  the standard errors are given in parenthesis under coefficients and p-values are given in parenthesis under 
+> the F-statistics. The significance codes used are given at the {\i + p < 0.10, * p < 0.05, ** p < 0.01, *** p
+>  < 0.001} significance levels.");
+(output written to TABLE 5.rtf)
+
+. #delimit cr
+delimiter now cr
+. 
+. log close                               // closes the log file
+      name:  <unnamed>
+       log:  /Users/rojas-riccio/Desktop/4TH YEAR/ECO 375/Assignment 2/PARA SUBIR /ECO375_Assignment2_ROJAS_Lui
+> s.log
+  log type:  text
+ closed on:  17 Dec 2020, 18:41:57
+---------------------------------------------------------------------------------------------------------------
