@@ -1,0 +1,212 @@
+-------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/rojas-riccio/Desktop/4TH YEAR/ECO 375/Assignment 1/ECO375_Assignment1_ROJAS_L
+> uis.log
+  log type:  text
+ opened on:  15 Nov 2020, 17:06:18
+
+. set more off    // This tells Stata to automatically continue if displays exceed screen capacit
+> y, instead of making user click
+
+. clear                   // Removes any data from memory every time this script is run.
+
+. display "ECO375_Assignment1 " _n "`surname' `firstname' `studentnumber'" _n c(current_date) c(c
+> urrent_time)
+ECO375_Assignment1 
+ROJAS Luis 1003650676
+15 Nov 202017:06:18
+
+.                                                                                                
+>                                                  
+. /*      ====================================
+>         =========== Assignment 1 ===========
+>         ==================================== */
+.         
+. 
+. use "WAGE2.dta", clear          // Call the file to be used 
+
+. datasignature                           // Checks data integrity                
+  935:17(45932):1831679373:3741107775
+
+. describe                                        // describes the data to be analized
+
+Contains data from WAGE2.dta
+  obs:           935                          
+ vars:            17                          14 Apr 1999 13:41
+-------------------------------------------------------------------------------------------------
+              storage   display    value
+variable name   type    format     label      variable label
+-------------------------------------------------------------------------------------------------
+wage            int     %9.0g                 monthly earnings
+hours           byte    %9.0g                 average weekly hours
+IQ              int     %9.0g                 IQ score
+KWW             byte    %9.0g                 knowledge of world work score
+educ            byte    %9.0g                 years of education
+exper           byte    %9.0g                 years of work experience
+tenure          byte    %9.0g                 years with current employer
+age             byte    %9.0g                 age in years
+married         byte    %9.0g                 =1 if married
+black           byte    %9.0g                 =1 if black
+south           byte    %9.0g                 =1 if live in south
+urban           byte    %9.0g                 =1 if live in SMSA
+sibs            byte    %9.0g                 number of siblings
+brthord         byte    %9.0g                 birth order
+meduc           byte    %9.0g                 mother's education
+feduc           byte    %9.0g                 father's education
+lwage           float   %9.0g                 natural log of wage
+-------------------------------------------------------------------------------------------------
+Sorted by: 
+
+. 
+.                         
+. /*      ====================================
+>         ============ Question 1 ============
+>         ==================================== */
+.         
+. //Mean of selected variables
+. 
+. tabstat wage educ exper IQ, statistics(mean)
+
+   stats |      wage      educ     exper        IQ
+---------+----------------------------------------
+    mean |  957.9455  13.46845  11.56364  101.2824
+--------------------------------------------------
+
+. 
+. /*      ====================================
+>         ============ Question 2 ============
+>         ==================================== */
+.         
+. //sd of IQ
+. 
+. tabstat IQ, statistics(sd)
+
+    variable |        sd
+-------------+----------
+          IQ |  15.05264
+------------------------
+
+. 
+. /*      ====================================
+>         ============ Question 3 ============
+>         ==================================== */
+. 
+. //Number of observations equal to 12 years of educ
+. 
+. count if educ==12
+  393
+
+. 
+. /*      ====================================
+>         ============ Question 4 ============
+>         ==================================== */
+.         
+. //Max number of years of educ in the sample
+. 
+. tabstat educ, statistics(max)
+
+    variable |       max
+-------------+----------
+        educ |        18
+------------------------
+
+. 
+. /*      ====================================
+>         ============ Question 5 ============
+>         ==================================== */
+.         
+. //Run the regression
+. 
+. gen ln_wage = ln(wage)
+
+. label variable ln_wage "Natural log of Wages"
+
+. 
+. reg ln_wage educ exper IQ age, robust
+
+Linear regression                               Number of obs     =        935
+                                                F(4, 930)         =      51.38
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1701
+                                                Root MSE          =     .38447
+
+------------------------------------------------------------------------------
+             |               Robust
+     ln_wage |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+        educ |   .0509697   .0079143     6.44   0.000     .0354377    .0665016
+       exper |   .0131736   .0038973     3.38   0.001     .0055251    .0208221
+          IQ |   .0059629   .0009813     6.08   0.000     .0040372    .0078887
+         age |   .0144485   .0049765     2.90   0.004     .0046821    .0242149
+       _cons |   4.858288   .1664251    29.19   0.000     4.531675      5.1849
+------------------------------------------------------------------------------
+
+. 
+. /*      ====================================
+>         ============ Question 6 ============ 
+>         ==================================== */
+. 
+. display _b[educ] * 100
+5.0969671
+
+. 
+. /*      ====================================
+>         ============ Question 7 ============
+>         ==================================== */
+.                 
+. display _b[educ] * 100 - _b[exper] *100
+3.7796083
+
+.                 
+. /*      ====================================
+>         ============ Question 8 ============
+>         ==================================== */
+. 
+. mfx, predict(xb) at(12,10, 100, 28)
+
+Marginal effects after regress
+      y  = Linear prediction (predict, xb)
+         =  6.6025105
+------------------------------------------------------------------------------
+variable |      dy/dx    Std. Err.     z    P>|z|  [    95% C.I.   ]      X
+---------+--------------------------------------------------------------------
+    educ |   .0509697      .00791    6.44   0.000   .035458  .066481        12
+   exper |   .0131736       .0039    3.38   0.001   .005535  .020812        10
+      IQ |   .0059629      .00098    6.08   0.000    .00404  .007886       100
+     age |   .0144485      .00498    2.90   0.004   .004695  .024202        28
+------------------------------------------------------------------------------
+
+. 
+. /*      ====================================
+>         ============ Question 9 ============
+>         ==================================== */
+.         
+. //Percentage of variation in ln(wage) explained by covariates
+. 
+. di "R^2 = " e(r2)
+R^2 = .17014042
+
+. 
+. /*      ====================================
+>         ============ Question 10 ============
+>         ==================================== */
+.         
+. //hypothesis testing 
+. 
+. test _b[educ]=_b[exper]=0
+
+ ( 1)  educ - exper = 0
+ ( 2)  educ = 0
+
+       F(  2,   930) =   20.76
+            Prob > F =    0.0000
+
+. 
+. 
+. log close                               // closes the log file
+      name:  <unnamed>
+       log:  /Users/rojas-riccio/Desktop/4TH YEAR/ECO 375/Assignment 1/ECO375_Assignment1_ROJAS_L
+> uis.log
+  log type:  text
+ closed on:  15 Nov 2020, 17:06:18
+-------------------------------------------------------------------------------------------------
